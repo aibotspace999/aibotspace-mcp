@@ -19,10 +19,10 @@ async function callBrightData(toolName: string, params: Record<string, any>, cli
 
 const scrapeWeb: ToolDefinition = {
   name: 'aibot_scrape_web',
-  description: 'Scrape any webpage and extract content as markdown/text. Works with any publicly accessible URL.',
+  description: 'Scrape any webpage and extract clean content as markdown or text. Handles JavaScript-rendered pages, anti-bot protection, and pagination. Returns: page title, main content, links, images. Useful for competitor analysis, content extraction, and data collection.',
   group: 'scraper',
   inputSchema: z.object({
-    url: z.string().url().describe('URL to scrape'),
+    url: z.string().url().describe('URL to scrape (any publicly accessible webpage)'),
   }),
   handler: async (params, client) => {
     const result = await callBrightData('web_scraper', params, client);
@@ -34,7 +34,7 @@ const scrapeWeb: ToolDefinition = {
 
 const scrapeAmazonProduct: ToolDefinition = {
   name: 'aibot_scrape_amazon_product',
-  description: 'Scrape Amazon product detail page. Returns title, price, brand, rating, images, features, description, variations.',
+  description: 'Scrape Amazon product detail page. Returns: title, price, brand, rating, review count, bullet points, product description, images, variations (size/color), seller info, availability, dimensions, weight. Perfect for product research and competitive analysis.',
   group: 'scraper',
   inputSchema: z.object({
     url: z.string().url().describe('Amazon product URL (e.g. https://www.amazon.com/dp/B0XXX)'),
@@ -49,10 +49,10 @@ const scrapeAmazonProduct: ToolDefinition = {
 
 const scrapeAmazonSearch: ToolDefinition = {
   name: 'aibot_scrape_amazon_search',
-  description: 'Search Amazon products with rich filters: keyword, price range, rating, Prime, deals, brand, category, sort order.',
+  description: 'Search Amazon products with advanced filters. Returns: product list with title, price, rating, review count, image, URL, Prime status. Supports filtering by price range, rating, brand, category, deals. Useful for market research and finding top products in any niche.',
   group: 'scraper',
   inputSchema: z.object({
-    keyword: z.string().describe('Search keyword'),
+    keyword: z.string().describe('Search keyword (e.g., "wireless earbuds")'),
     url: z.string().optional().describe('Amazon domain (default: https://www.amazon.com)'),
     sort: z.string().optional().describe('Sort: review-rank, price-desc-alias, price-asc-alias, date-desc-rank, sales-rank'),
     page: z.number().int().optional().describe('Page number'),
@@ -63,7 +63,7 @@ const scrapeAmazonSearch: ToolDefinition = {
     new_only: z.boolean().optional(),
     prime_only: z.boolean().optional(),
     deals_only: z.boolean().optional(),
-    pages_to_search: z.number().int().optional().default(1).describe('How many pages to scrape'),
+    pages_to_search: z.number().int().optional().default(1).describe('How many pages to scrape (1-10)'),
   }),
   handler: async (params, client) => {
     const result = await callBrightData('web_data_amazon_product_search', params, client);

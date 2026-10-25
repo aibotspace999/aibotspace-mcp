@@ -21,16 +21,16 @@ import type { AibotSpaceClient } from '../client.js';
 
 const tiktokProductSearch: ToolDefinition = {
   name: 'aibot_tiktok_product_search',
-  description: 'Search TikTok Shop products by keyword. Returns product list with sales data, prices, and shop info.',
+  description: 'Search TikTok Shop products by keyword. Returns: product title, price, sales volume, rating, shop name, product images, and affiliate commission rate. Useful for finding trending products and analyzing competition.',
   group: 'tiktok',
   inputSchema: z.object({
-    keyword: z.string().describe('Search keyword'),
+    keyword: z.string().describe('Search keyword (e.g., "smart ring", "yoga mat")'),
     region: z.string().optional().default('US').describe('Region: US, UK, ID, MY, TH, VN, PH, SG'),
     page: z.number().int().optional().default(1),
     pageSize: z.number().int().optional().default(20).describe('Results per page (max 100)'),
-    min_price: z.number().optional(),
-    max_price: z.number().optional(),
-    min_sales: z.number().optional(),
+    min_price: z.number().optional().describe('Minimum price filter'),
+    max_price: z.number().optional().describe('Maximum price filter'),
+    min_sales: z.number().optional().describe('Minimum sales volume filter'),
   }),
   handler: async (params, client) => {
     const result = await client.post('/api/v1/tiktok/product/search', params);
@@ -42,10 +42,10 @@ const tiktokProductSearch: ToolDefinition = {
 
 const tiktokHotVideos: ToolDefinition = {
   name: 'aibot_tiktok_hot_videos',
-  description: 'Find trending/hot TikTok videos by keyword. Returns video list with views, likes, and associated products.',
+  description: 'Find trending/viral TikTok videos by keyword. Returns: video URL, view count, like count, comment count, share count, creator info, and associated product links. Perfect for content research and influencer discovery.',
   group: 'tiktok',
   inputSchema: z.object({
-    keyword: z.string().optional().describe('Search keyword'),
+    keyword: z.string().optional().describe('Search keyword or hashtag'),
     region: z.string().optional().default('US'),
     page: z.number().int().optional().default(1),
     pageSize: z.number().int().optional().default(20),
@@ -61,7 +61,7 @@ const tiktokHotVideos: ToolDefinition = {
 
 const tiktokNewListed: ToolDefinition = {
   name: 'aibot_tiktok_new_listed',
-  description: 'Get newly listed TikTok Shop products (new arrivals). Useful for spotting emerging trends.',
+  description: 'Get newly listed TikTok Shop products (launched in recent days). Returns: product details, launch date, initial sales, price. Ideal for spotting emerging trends before they become saturated.',
   group: 'tiktok',
   inputSchema: z.object({
     region: z.string().optional().default('US'),
