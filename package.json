@@ -1,7 +1,7 @@
 {
   "name": "aibotspace-mcp",
   "version": "1.0.0",
-  "description": "AIBotSpace MCP Server - AI creation, TikTok analytics, Amazon research, web scraping. One API key for all: images, videos, chat, TikTok, Keepa, Bright Data.",
+  "description": "AIBotSpace MCP Server - 39 tools with one API key. AI generation (GPT Image 2, Seedance 2.0/2.5, Sora 2, Veo, MiniMax H3, NANO2, NANO PRO), TikTok analytics (FastMoss), Amazon research (Keepa), web scraping (Bright Data), and AI chat (ChatGPT, Gemini, Claude, Qwen).",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
