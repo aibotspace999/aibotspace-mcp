@@ -1,0 +1,16 @@
+node_modules/
+dist/
+.env
+*.js.map
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.tmp
+.cache/
+
+# Test files (not published)
+test-api.mjs
+test-agent-workflow.mjs
