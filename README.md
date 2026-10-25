@@ -31,7 +31,7 @@ AIBotSpace 统一 MCP 服务器 — 在 Claude Code / Codex / Cursor 等 AI 工�
   "mcpServers": {
     "aibotspace": {
       "command": "npx",
-      "args": ["-y", "aibotspace-mcp"],
+      "args": ["-y", "github:aibotspace999/aibotspace-mcp"],
       "env": {
         "AIBOTSPACE_API_KEY": "sk-aibot-xxxxxxxx"
       }
@@ -49,7 +49,7 @@ AIBotSpace 统一 MCP 服务器 — 在 Claude Code / Codex / Cursor 等 AI 工�
   "mcpServers": {
     "aibotspace": {
       "command": "npx",
-      "args": ["-y", "aibotspace-mcp"],
+      "args": ["-y", "github:aibotspace999/aibotspace-mcp"],
       "env": {
         "AIBOTSPACE_API_KEY": "sk-aibot-xxxxxxxx"
       }
@@ -67,7 +67,7 @@ AIBotSpace 统一 MCP 服务器 — 在 Claude Code / Codex / Cursor 等 AI 工�
   "mcpServers": {
     "aibotspace": {
       "command": "npx",
-      "args": ["-y", "aibotspace-mcp"],
+      "args": ["-y", "github:aibotspace999/aibotspace-mcp"],
       "env": {
         "AIBOTSPACE_API_KEY": "sk-aibot-xxxxxxxx"
       }
@@ -80,7 +80,7 @@ AIBotSpace 统一 MCP 服务器 — 在 Claude Code / Codex / Cursor 等 AI 工�
 
 在 WorkBuddy 设置中添加 MCP 服务器：
 - **名称**: `aibotspace`
-- **命令**: `npx -y aibotspace-mcp`
+- **命令**: `npx -y github:aibotspace999/aibotspace-mcp`
 - **环境变量**: `AIBOTSPACE_API_KEY=sk-aibot-xxxxxxxx`
 
 ### 3. 本地开发运行
