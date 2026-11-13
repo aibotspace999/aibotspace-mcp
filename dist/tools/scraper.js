@@ -1,0 +1,169 @@
+/**
+ * Bright Data tools - web scraping & data collection
+ *
+ * Calls AIBotSpace internal endpoint:
+ *   POST /api/v1/scraper/call
+ *
+ * Routes to different Bright Data datasets based on tool name
+ */
+import { z } from 'zod';
+async function callBrightData(toolName, params, client) {
+    return client.post('/api/v1/scraper/call', { toolName, params });
+}
+// ─── Generic Web Scraper ──────────────────────────────
+const scrapeWeb = {
+    name: 'aibot_scrape_web',
+    description: 'Scrape any webpage and extract clean content as markdown or text. Handles JavaScript-rendered pages, anti-bot protection, and pagination. Returns: page title, main content, links, images. Useful for competitor analysis, content extraction, and data collection.',
+    group: 'scraper',
+    inputSchema: z.object({
+        url: z.string().url().describe('URL to scrape (any publicly accessible webpage)'),
+    }),
+    handler: async (params, client) => {
+        const result = await callBrightData('web_scraper', params, client);
+        return JSON.stringify(result, null, 2);
+    },
+};
+// ─── Amazon Product Scraper ──────────────────────────────
+const scrapeAmazonProduct = {
+    name: 'aibot_scrape_amazon_product',
+    description: 'Scrape Amazon product detail page. Returns: title, price, brand, rating, review count, bullet points, product description, images, variations (size/color), seller info, availability, dimensions, weight. Perfect for product research and competitive analysis.',
+    group: 'scraper',
+    inputSchema: z.object({
+        url: z.string().url().describe('Amazon product URL (e.g. https://www.amazon.com/dp/B0XXX)'),
+    }),
+    handler: async (params, client) => {
+        const result = await callBrightData('web_data_amazon_product', params, client);
+        return JSON.stringify(result, null, 2);
+    },
+};
+// ─── Amazon Search Scraper ──────────────────────────────
+const scrapeAmazonSearch = {
+    name: 'aibot_scrape_amazon_search',
+    description: 'Search Amazon products with advanced filters. Returns: product list with title, price, rating, review count, image, URL, Prime status. Supports filtering by price range, rating, brand, category, deals. Useful for market research and finding top products in any niche.',
+    group: 'scraper',
+    inputSchema: z.object({
+        keyword: z.string().describe('Search keyword (e.g., "wireless earbuds")'),
+        url: z.string().optional().describe('Amazon domain (default: https://www.amazon.com)'),
+        sort: z.string().optional().describe('Sort: review-rank, price-desc-alias, price-asc-alias, date-desc-rank, sales-rank'),
+        page: z.number().int().optional().describe('Page number'),
+        min_rating: z.number().optional().describe('Min rating (1-5)'),
+        price_min: z.number().optional().describe('Min price in dollars'),
+        price_max: z.number().optional().describe('Max price in dollars'),
+        brand: z.string().optional(),
+        new_only: z.boolean().optional(),
+        prime_only: z.boolean().optional(),
+        deals_only: z.boolean().optional(),
+        pages_to_search: z.number().int().optional().default(1).describe('How many pages to scrape (1-10)'),
+    }),
+    handler: async (params, client) => {
+        const result = await callBrightData('web_data_amazon_product_search', params, client);
+        return JSON.stringify(result, null, 2);
+    },
+};
+// ─── Amazon Reviews Scraper ──────────────────────────────
+const scrapeAmazonReviews = {
+    name: 'aibot_scrape_amazon_reviews',
+    description: 'Scrape Amazon product reviews. Returns review text, rating, date, verified purchase status.',
+    group: 'scraper',
+    inputSchema: z.object({
+        url: z.string().url().describe('Amazon product URL'),
+    }),
+    handler: async (params, client) => {
+        const result = await callBrightData('web_data_amazon_product_reviews', params, client);
+        return JSON.stringify(result, null, 2);
+    },
+};
+// ─── TikTok Shop Scraper ──────────────────────────────
+const scrapeTikTokShop = {
+    name: 'aibot_scrape_tiktok_shop',
+    description: 'Scrape TikTok Shop product details.',
+    group: 'scraper',
+    inputSchema: z.object({
+        url: z.string().url().describe('TikTok Shop product URL'),
+    }),
+    handler: async (params, client) => {
+        const result = await callBrightData('web_data_tiktok_shop', params, client);
+        return JSON.stringify(result, null, 2);
+    },
+};
+// ─── Social Media Scraper ──────────────────────────────
+const scrapeSocialMedia = {
+    name: 'aibot_scrape_social_media',
+    description: `Scrape social media profiles and posts.
+Auto-detects platform from URL (Instagram/LinkedIn/Twitter/Facebook).
+Returns profile data, post content, follower counts, engagement metrics.`,
+    group: 'scraper',
+    inputSchema: z.object({
+        url: z.string().url().describe('Social media URL (Instagram/LinkedIn/Twitter/Facebook)'),
+        platform: z.enum(['instagram', 'linkedin', 'twitter', 'facebook']).optional().describe('Override auto-detection'),
+    }),
+    handler: async (params, client) => {
+        const result = await callBrightData('social_media_scraper', params, client);
+        return JSON.stringify(result, null, 2);
+    },
+};
+// ─── E-commerce Universal Scraper ──────────────────────────────
+const scrapeEcommerce = {
+    name: 'aibot_scrape_ecommerce',
+    description: `Universal e-commerce scraper. Auto-detects platform from URL (Amazon/Walmart/eBay/TikTok).
+Returns product data appropriate for the detected platform.`,
+    group: 'scraper',
+    inputSchema: z.object({
+        url: z.string().url().describe('Product page URL'),
+        platform: z.enum(['amazon', 'walmart', 'ebay', 'tiktok']).optional().describe('Override auto-detection'),
+    }),
+    handler: async (params, client) => {
+        const result = await callBrightData('ecommerce_scraper', params, client);
+        return JSON.stringify(result, null, 2);
+    },
+};
+// ─── Walmart Price Scraper ──────────────────────────────
+const scrapeWalmart = {
+    name: 'aibot_scrape_walmart',
+    description: 'Scrape Walmart product price and details.',
+    group: 'scraper',
+    inputSchema: z.object({
+        url: z.string().url().describe('Walmart product URL'),
+    }),
+    handler: async (params, client) => {
+        const result = await callBrightData('ecommerce_scraper', { ...params, platform: 'walmart' }, client);
+        return JSON.stringify(result, null, 2);
+    },
+};
+// ─── eBay Scraper ──────────────────────────────
+const scrapeEbay = {
+    name: 'aibot_scrape_ebay',
+    description: 'Scrape eBay product listing details.',
+    group: 'scraper',
+    inputSchema: z.object({
+        url: z.string().url().describe('eBay product URL'),
+    }),
+    handler: async (params, client) => {
+        const result = await callBrightData('ecommerce_scraper', { ...params, platform: 'ebay' }, client);
+        return JSON.stringify(result, null, 2);
+    },
+};
+// ─── Dataset List (admin/discovery) ──────────────────────────────
+const listDatasets = {
+    name: 'aibot_scrape_list_datasets',
+    description: 'List all available Bright Data datasets. Useful for discovering new scraping capabilities.',
+    group: 'scraper',
+    inputSchema: z.object({}),
+    handler: async (_params, client) => {
+        const result = await client.post('/desktop/data-api/brightdata/list', {});
+        return JSON.stringify(result, null, 2);
+    },
+};
+// ─── Group ──────────────────────────────────────────
+export const scraperGroup = {
+    group: 'scraper',
+    label: 'Web Scraping & Data Collection (Bright Data)',
+    register() {
+        return [
+            scrapeWeb, scrapeAmazonProduct, scrapeAmazonSearch, scrapeAmazonReviews,
+            scrapeTikTokShop, scrapeSocialMedia, scrapeEcommerce,
+            scrapeWalmart, scrapeEbay, listDatasets,
+        ];
+    },
+};
+//# sourceMappingURL=scraper.js.map

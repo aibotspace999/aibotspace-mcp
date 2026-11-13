@@ -6,7 +6,7 @@ AIBotSpace 统一 MCP 服务器 — 在 Claude Code / Codex / Cursor 等 AI 工�
 
 | 组 | 工具数 | 说明 |
 |---|---|---|
-| 🎨 AI 创作 | 5 | GPT Image 2 / NANO2 / NANO PRO 生图；Seedance / MiniMax H3 / Omni / Sora / Veo 生视频 |
+| 🎨 AI 创作 | 5 | GPT Image 2 / NANO2 / NANO PRO 生图；Seedance / MiniMax H3 / Muse / Omni / Sora / Veo 生视频 |
 | 🎵 TikTok 选品 | 8 | FastMoss：商品搜索、热门视频、新品榜、销量榜、店铺搜索 |
 | 📊 Amazon 分析 | 13 | Keepa：商品详情、蓝海选品、畅销榜、促销、卖家筛选、价格追踪 |
 | 🕷️ 数据采集 | 10 | Bright Data：Amazon / TikTok / 社交媒体 / 通用网页抓取 |

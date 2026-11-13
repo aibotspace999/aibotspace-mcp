@@ -96,10 +96,32 @@
 | `seedance2` / `seedance2-mini` / `seedance2-fast` | Seedance 2.0 系列 |
 | `seedance2.5` | Seedance 2.5 |
 | `minimax-h3-768p` / `minimax-h3-2k` | MiniMax H3 |
+| `muse` | Meta Muse：4~60 秒、720p、自带声音 |
 | `sora2` | OpenAI Sora 2 |
 | `veo` | Google Veo |
 
-**响应**: 同图片，返回 `task_id` 或同步结果。
+**Muse 专属限制**（`model: "muse"`）:
+
+```json
+{
+  "model": "muse",
+  "prompt": "海边日落，女孩回头微笑，镜头缓慢推进",
+  "aspect_ratio": "9:16",
+  "duration": 20,
+  "image_urls": ["https://example.com/first-frame.jpg"]
+}
+```
+
+| 参数 | 限制 |
+|---|---|
+| `resolution` | 固定 720p（传其他值会被忽略） |
+| `aspect_ratio` | 仅 `16:9` / `9:16`，其他值按 `16:9` 提交 |
+| `duration` | 4~60 整数秒，默认 10；非标准档位由上游向上取档 |
+| `image_urls` | 最多 4 张；1 张=首帧，多张=参考图 |
+| `video_urls` / `audio_urls` | 不支持，传了会被忽略 |
+| `generate_audio` | 成片自带声音，无需开启 |
+
+**响应**: 同图片，返回 `task_id` 或同步结果。异步响应的 `_meta` 会带上实际提交的 `duration` / `resolution` / `aspect_ratio`，若入参被钳制或忽略，会额外返回 `warnings` 数组说明原因。
 
 ### GET /api/v1/videos/:taskId
 

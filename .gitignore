@@ -1,5 +1,4 @@
 node_modules/
-dist/
 .env
 *.js.map
 *.log
@@ -14,3 +13,9 @@ Thumbs.db
 # Test files (not published)
 test-api.mjs
 test-agent-workflow.mjs
+
+# 说明：dist/ 必须提交。
+# 文档里的安装方式是 `npx -y github:aibotspace999/aibotspace-mcp`，
+# 从 GitHub 拉取时 npm 只会执行 prepare（依赖 devDeps + tsc），
+# 构建环境不完整时就没有 dist/index.js，bin 直接跑不起来。
+# 把编译产物一起提交，保证任何机器 npx 都能直接启动。
