@@ -13,6 +13,7 @@
  *   POST /api/v1/tiktok/hot-videos
  */
 import { z } from 'zod';
+import { tiktokShopTools } from './tiktokShop.js';
 // ─── TikTok Product Search ──────────────────────────────
 const tiktokProductSearch = {
     name: 'aibot_tiktok_product_search',
@@ -145,11 +146,13 @@ const tiktokProductVideos = {
 // ─── Group ──────────────────────────────────────────
 export const tiktokGroup = {
     group: 'tiktok',
-    label: 'TikTok Shop Analytics (FastMoss)',
+    label: 'TikTok Shop (Market Analytics + Store Listing)',
     register() {
         return [
             tiktokProductSearch, tiktokHotVideos, tiktokNewListed, tiktokTopSelling,
             tiktokCategories, tiktokShopSearch, tiktokShopProducts, tiktokProductVideos,
+            // 店铺授权 + 上架（同一个 group，已在用 tiktok 的用户无需改配置）
+            ...tiktokShopTools,
         ];
     },
 };

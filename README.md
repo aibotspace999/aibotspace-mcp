@@ -120,7 +120,9 @@ npm start        # 运行构建后的版本
 | `aibot_video_status` | 查询生视频任务状态 |
 | `aibot_get_balance` | 查询积分余额 |
 
-### TikTok 选品 (8)
+### TikTok (14)
+
+选品数据（FastMoss，只读）：
 
 | 工具 | 说明 |
 |---|---|
@@ -132,6 +134,17 @@ npm start        # 运行构建后的版本
 | `aibot_tiktok_shop_search` | 店铺搜索 |
 | `aibot_tiktok_shop_products` | 店铺商品列表 |
 | `aibot_tiktok_product_videos` | 商品关联视频 |
+
+自己店铺的授权与上架：
+
+| 工具 | 说明 |
+|---|---|
+| `aibot_tiktok_shop_list` | 查看已授权店铺（上架前先调这个） |
+| `aibot_tiktok_shop_authorize` | 获取 OAuth 授权链接，用户浏览器打开授权 |
+| `aibot_tiktok_shop_categories` | 可售叶子类目（店铺权限过滤） |
+| `aibot_tiktok_shop_category_attributes` | 类目属性与必填项 |
+| `aibot_tiktok_shop_warehouses` | 店铺仓库列表 |
+| `aibot_tiktok_shop_publish` | 提交上架（真实创建并激活商品，进入平台审核） |
 
 ### Amazon 市场分析 (13)
 
