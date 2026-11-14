@@ -24,11 +24,14 @@ const ImageSizeEnum = z.enum([
   '512x512', '2048x2048', '4096x4096',
 ]);
 
-const ImageModelEnum = z.enum([
-  'gpt-image-2',
-  'nano2-0.5k', 'nano2-1k', 'nano2-2k', 'nano2-4k',
-  'nano-pro-1k', 'nano-pro-2k', 'nano-pro-4k',
-]);
+// 🔑 不在这里用 z.enum 硬编码模型清单：模型由服务端（后端）统一校验。
+// 这样服务端新增模型后，已接入的用户无需升级/重装 MCP 即可直接使用；
+// 模型名拼错会由服务端返回明确的 INVALID_MODEL 错误（而不是客户端枚举报错）。
+const ImageModelSchema = z.string().describe(
+  'Image model id. Currently supported: gpt-image-2 (default, highest quality), ' +
+  'nano2-0.5k / nano2-1k / nano2-2k / nano2-4k, nano-pro-1k / nano-pro-2k / nano-pro-4k. ' +
+  'Newer server-side models can be passed directly without upgrading this package.'
+);
 
 const generateImage: ToolDefinition = {
   name: 'aibot_generate_image',
@@ -38,7 +41,7 @@ Returns URL(s) of generated image(s). For async tasks, returns task_id for polli
   group: 'creative',
   inputSchema: z.object({
     prompt: z.string().describe('Text description of the image to generate'),
-    model: ImageModelEnum.optional().default('gpt-image-2').describe('Image model to use'),
+    model: ImageModelSchema.optional().default('gpt-image-2').describe('Image model to use'),
     size: ImageSizeEnum.optional().default('1024x1024').describe('Image dimensions'),
     n: z.number().int().min(1).max(4).optional().default(1).describe('Number of images to generate'),
     reference_images: z.array(z.string().url()).optional().describe('Reference image URLs for image-to-image'),
@@ -104,53 +107,67 @@ const imageStatus: ToolDefinition = {
 
 // ─── Video Generation ──────────────────────────────────────────
 
-const VideoModelEnum = z.enum([
-  'omni', 'seedance2', 'seedance2-mini', 'seedance2-fast', 'seedance2.5',
-  'minimax-h3-768p', 'minimax-h3-2k',
-  'muse',
-  'sora2', 'veo',
-]);
+// 🔑 同上：模型清单交给服务端校验，新增模型不需要用户升级 MCP。
+const VideoModelSchema = z.string().describe(
+  'Video model id. Currently supported: seedance2 (default), seedance2-mini, seedance2-fast, ' +
+  'seedance2.5, minimax-h3-768p, minimax-h3-2k, muse, omni, veo, sora2. ' +
+  'Newer server-side models can be passed directly without upgrading this package.'
+);
 
 const AspectRatioEnum = z.enum(['1:1', '16:9', '9:16', '4:3', '3:4']);
-const ResolutionEnum = z.enum(['480p', '720p', '1080p']);
-// 放开到 4~60：Muse 支持 4~60 秒任意整数，其他模型只认 5 / 10（handler 里自动归位）
+const ResolutionEnum = z.enum(['480p', '720p', '1080p', '4k']);
+// 放开到 4~60：Muse 支持 4~60 秒任意整数，omni 固定 10 秒、veo 最长 8 秒、sora2 最长 12 秒，
+// 其余模型只认 5 / 10（handler 里按模型自动归位并回传 note）
 const DurationSchema = z.number().int().min(4).max(60);
 
 const generateVideo: ToolDefinition = {
   name: 'aibot_generate_video',
   description: `Generate AI videos from text and/or reference media.
-Models: omni (fast, 10s fixed), seedance2 series (best quality, up to 15s), minimax-h3 (high-res), muse (Meta Muse, 4-60s, 720p, native audio), sora2, veo.
+Models: omni (fast, 10s fixed), seedance2 series (best quality, up to 15s), minimax-h3 (high-res), muse (Meta Muse, 4-60s, native audio), sora2, veo (Google Veo 3.1).
 Supports image_urls, video_urls, audio_urls as reference material.
 
 Model limits:
-- muse: 720p fixed, aspect_ratio only 16:9 / 9:16, duration 4-60s (default 10), max 4 image_urls, no video_urls/audio_urls, sound is generated natively (generate_audio ignored).
-- seedance2 / minimax-h3 / omni: duration 5 or 10 only (default 5).`,
+- muse: 720p fixed, aspect_ratio 16:9 / 9:16, duration 4-60s (default 10), max 4 image_urls, no video_urls/audio_urls, sound is generated natively.
+- omni: 10s fixed and 720p fixed (duration/resolution tunings are ignored), aspect_ratio 16:9 / 9:16, max 7 image_urls, no video_urls/audio_urls.
+- veo: max 8s per clip, resolution 720p / 1080p / 4k, up to 4 reference images; use start_frame_url + end_frame_url for first/last-frame (frames) mode.
+- sora2: max 12s, aspect_ratio 16:9 / 9:16, only the first image_url is used.
+- seedance2 / minimax-h3: duration 5 or 10 only (default 5).`,
   group: 'creative',
   inputSchema: z.object({
     prompt: z.string().describe('Text description of the video to generate'),
-    model: VideoModelEnum.optional().default('seedance2').describe('Video model'),
-    aspect_ratio: AspectRatioEnum.optional().default('16:9').describe('Video aspect ratio (muse: only 16:9 / 9:16)'),
-    duration: DurationSchema.optional().describe('Duration in seconds. muse: 4-60 (default 10); other models: 5 or 10 (default 5)'),
-    resolution: ResolutionEnum.optional().default('720p').describe('Video resolution (muse is always 720p)'),
+    model: VideoModelSchema.optional().default('seedance2').describe('Video model'),
+    aspect_ratio: AspectRatioEnum.optional().default('16:9').describe('Video aspect ratio (muse / omni / sora2: only 16:9 / 9:16)'),
+    duration: DurationSchema.optional().describe('Duration in seconds. muse: 4-60 (default 10); omni: fixed 10; veo: max 8; sora2: max 12; others: 5 or 10 (default 5)'),
+    resolution: ResolutionEnum.optional().default('720p').describe('Video resolution (muse / omni always 720p; veo supports up to 4k)'),
     generate_audio: z.boolean().optional().default(false).describe('Whether to generate audio (muse always has native audio)'),
-    image_urls: z.array(z.string().url()).optional().describe('Reference image URLs (muse: max 4)'),
-    video_urls: z.array(z.string().url()).optional().describe('Reference video URLs (not supported by muse)'),
-    audio_urls: z.array(z.string().url()).optional().describe('Reference audio URLs (not supported by muse)'),
+    image_urls: z.array(z.string().url()).optional().describe('Reference image URLs (muse: max 4; omni: max 7; veo: max 4; sora2: only first used)'),
+    video_urls: z.array(z.string().url()).optional().describe('Reference video URLs (not supported by muse / omni / veo / sora2)'),
+    audio_urls: z.array(z.string().url()).optional().describe('Reference audio URLs (not supported by muse / omni / veo / sora2)'),
+    start_frame_url: z.string().url().optional().describe('First-frame image URL, veo frames mode only'),
+    end_frame_url: z.string().url().optional().describe('Last-frame image URL, veo frames mode only'),
   }),
   handler: async (params, client) => {
     const isMuse = params.model === 'muse';
+    const isOmni = params.model === 'omni';
+    const isVeo = params.model === 'veo';
+    const isSora = params.model === 'sora2';
     const notes: string[] = [];
 
     let aspectRatio = params.aspect_ratio;
     let resolution = params.resolution;
-    let duration = params.duration ?? (isMuse ? 10 : 5);
+    let duration = params.duration ?? (isMuse ? 10 : (isOmni ? 10 : (isVeo ? 8 : (isSora ? 12 : 5))));
+
+    // muse / omni / sora2 都只有横竖两档
+    const clampAspect = (name: string) => {
+      if (aspectRatio !== '16:9' && aspectRatio !== '9:16') {
+        notes.push(`${name} only supports 16:9 / 9:16, submitted as 16:9 (requested ${aspectRatio})`);
+        aspectRatio = '16:9';
+      }
+    };
 
     if (isMuse) {
       // 上游硬限制，先在本地下手钳制，避免用户拿到和预期不符的成片
-      if (aspectRatio !== '16:9' && aspectRatio !== '9:16') {
-        notes.push(`muse only supports 16:9 / 9:16, submitted as 16:9 (requested ${aspectRatio})`);
-        aspectRatio = '16:9';
-      }
+      clampAspect('muse');
       if (resolution !== '720p') {
         notes.push(`muse is fixed at 720p, resolution "${resolution}" ignored`);
         resolution = '720p';
@@ -160,6 +177,46 @@ Model limits:
       }
       if (params.video_urls?.length || params.audio_urls?.length) {
         notes.push('muse does not accept video_urls / audio_urls, they were ignored');
+      }
+    } else if (isOmni) {
+      clampAspect('omni');
+      if (resolution !== '720p') {
+        notes.push(`omni is fixed at 720p, resolution "${resolution}" ignored`);
+        resolution = '720p';
+      }
+      if (duration !== 10) {
+        notes.push(`omni is fixed at 10s, duration ${duration} ignored`);
+        duration = 10;
+      }
+      if (params.image_urls && params.image_urls.length > 7) {
+        notes.push(`omni accepts at most 7 reference images, extra ${params.image_urls.length - 7} dropped`);
+      }
+      if (params.video_urls?.length || params.audio_urls?.length) {
+        notes.push('omni does not accept video_urls / audio_urls, they were ignored');
+      }
+    } else if (isVeo) {
+      if (duration > 8) {
+        notes.push(`veo clips are at most 8s, duration ${duration} submitted as 8`);
+        duration = 8;
+      }
+      if (resolution !== '720p' && resolution !== '1080p' && resolution !== '4k') {
+        notes.push(`veo does not support "${resolution}", submitted as 720p`);
+        resolution = '720p';
+      }
+      if (params.image_urls && params.image_urls.length > 4) {
+        notes.push(`veo accepts at most 4 reference images, extra dropped`);
+      }
+      if (params.video_urls?.length || params.audio_urls?.length) {
+        notes.push('veo does not accept video_urls / audio_urls, they were ignored');
+      }
+    } else if (isSora) {
+      clampAspect('sora2');
+      if (duration > 12) {
+        notes.push(`sora2 clips are at most 12s, duration ${duration} submitted as 12`);
+        duration = 12;
+      }
+      if (params.image_urls && params.image_urls.length > 1) {
+        notes.push(`sora2 only uses the first image_url, extra ${params.image_urls.length - 1} dropped`);
       }
     } else if (duration !== 5 && duration !== 10) {
       const snapped = duration <= 5 ? 5 : 10;
@@ -177,6 +234,8 @@ Model limits:
       image_urls: params.image_urls,
       video_urls: params.video_urls,
       audio_urls: params.audio_urls,
+      ...(params.start_frame_url ? { start_frame_url: params.start_frame_url } : {}),
+      ...(params.end_frame_url ? { end_frame_url: params.end_frame_url } : {}),
     });
 
     if (result._meta?.task_id) {
