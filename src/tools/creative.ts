@@ -117,8 +117,14 @@ const VideoModelSchema = z.string().describe(
 const AspectRatioEnum = z.enum(['1:1', '16:9', '9:16', '4:3', '3:4']);
 const ResolutionEnum = z.enum(['480p', '720p', '1080p', '4k']);
 // 放开到 4~60：Muse 支持 4~60 秒任意整数，omni 固定 10 秒、veo 最长 8 秒、sora2 最长 12 秒，
-// 其余模型只认 5 / 10（handler 里按模型自动归位并回传 note）
+// seedance2 / minimax-h3 为 4~15 秒任意整数（handler 里按模型钳制并回传 note）
 const DurationSchema = z.number().int().min(4).max(60);
+
+// 🔑 2026-11-23：seedance2 / minimax-h3 上游均支持 4~15 秒任意整数秒
+// （H3 官方文档：duration 4~15 整数；站内两页下拉同样为 4~15，后端统一 clamp 到 15）。
+// 旧版 MCP 硬编码「只支持 5 或 10」，导致 15 秒被悄悄降级成 10 秒。
+const H3_SEEDANCE_MIN_DURATION = 4;
+const H3_SEEDANCE_MAX_DURATION = 15;
 
 const generateVideo: ToolDefinition = {
   name: 'aibot_generate_video',
@@ -131,13 +137,13 @@ Model limits:
 - omni: 10s fixed and 720p fixed (duration/resolution tunings are ignored), aspect_ratio 16:9 / 9:16, max 7 image_urls, no video_urls/audio_urls.
 - veo: max 8s per clip, resolution 720p / 1080p / 4k, up to 4 reference images; use start_frame_url + end_frame_url for first/last-frame (frames) mode.
 - sora2: max 12s, aspect_ratio 16:9 / 9:16, only the first image_url is used.
-- seedance2 / minimax-h3: duration 5 or 10 only (default 5).`,
+- seedance2 / minimax-h3: duration 4-15s (default 5), 15s is supported.`,
   group: 'creative',
   inputSchema: z.object({
     prompt: z.string().describe('Text description of the video to generate'),
     model: VideoModelSchema.optional().default('seedance2').describe('Video model'),
     aspect_ratio: AspectRatioEnum.optional().default('16:9').describe('Video aspect ratio (muse / omni / sora2: only 16:9 / 9:16)'),
-    duration: DurationSchema.optional().describe('Duration in seconds. muse: 4-60 (default 10); omni: fixed 10; veo: max 8; sora2: max 12; others: 5 or 10 (default 5)'),
+    duration: DurationSchema.optional().describe('Duration in seconds. muse: 4-60 (default 10); omni: fixed 10; veo: max 8; sora2: max 12; seedance2 / minimax-h3: 4-15 (default 5)'),
     resolution: ResolutionEnum.optional().default('720p').describe('Video resolution (muse / omni always 720p; veo supports up to 4k)'),
     generate_audio: z.boolean().optional().default(false).describe('Whether to generate audio (muse always has native audio)'),
     image_urls: z.array(z.string().url()).optional().describe('Reference image URLs (muse: max 4; omni: max 7; veo: max 4; sora2: only first used)'),
@@ -218,10 +224,10 @@ Model limits:
       if (params.image_urls && params.image_urls.length > 1) {
         notes.push(`sora2 only uses the first image_url, extra ${params.image_urls.length - 1} dropped`);
       }
-    } else if (duration !== 5 && duration !== 10) {
-      const snapped = duration <= 5 ? 5 : 10;
-      notes.push(`this model supports 5s or 10s only, duration ${duration} submitted as ${snapped}`);
-      duration = snapped;
+    } else if (duration < H3_SEEDANCE_MIN_DURATION || duration > H3_SEEDANCE_MAX_DURATION) {
+      const clamped = Math.min(H3_SEEDANCE_MAX_DURATION, Math.max(H3_SEEDANCE_MIN_DURATION, Math.round(duration)));
+      notes.push(`seedance2 / minimax-h3 support ${H3_SEEDANCE_MIN_DURATION}-${H3_SEEDANCE_MAX_DURATION}s, duration ${duration} submitted as ${clamped}`);
+      duration = clamped;
     }
 
     const result = await client.post<any>('/api/v1/videos/generations', {
