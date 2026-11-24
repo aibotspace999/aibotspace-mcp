@@ -16,7 +16,7 @@ import { z } from 'zod';
 // ─── 店铺列表 ──────────────────────────────────────────
 const shopList = {
     name: 'aibot_tiktok_shop_list',
-    description: 'List TikTok Shop stores the current user has authorized. ' +
+    description: 'List TikTok Shop stores authorized by the account that owns the CURRENT API key. ' +
         'Call this FIRST before any listing work. If the list is empty, call aibot_tiktok_shop_authorize ' +
         'to get an authorization URL the user opens in a browser.',
     group: 'tiktok',
@@ -78,7 +78,11 @@ const shopCategories = {
             .describe('Filter by keyword. IMPORTANT: categories are named in the shop marketplace language ' +
             '(e.g. Spanish for MX, English for US), and matching is accent-sensitive — "audifonos" will NOT match ' +
             '"audífonos". When unsure, omit keyword and page through with limit instead.'),
-        shop_id: z.string().optional().describe('Shop ID; omit to use the most recently authorized shop'),
+        shop_id: z
+            .string()
+            .optional()
+            .describe('Shop ID belonging to the CURRENT API key\'s account. Pass one from aibot_tiktok_shop_list only; ' +
+            'omit to use the most recently authorized shop of this account. A shop ID from any other account is rejected.'),
         locale: z.string().optional().describe('Category locale, e.g. en-US, es-MX; defaults to the shop marketplace'),
         limit: z.number().int().min(1).max(500).optional().default(200).describe('Max categories to return'),
     }),
@@ -213,7 +217,10 @@ const shopPublish = {
             .string()
             .optional()
             .describe('Marketplace code (US/MX/GB/...); defaults to the shop marketplace'),
-        shop_id: z.string().optional().describe('Target shop; omit to use the most recently authorized shop'),
+        shop_id: z
+            .string()
+            .optional()
+            .describe('Target shop belonging to the CURRENT API key\'s account; omit to use the most recently authorized shop of this account'),
     }),
     handler: async (params, client, _config) => {
         if (params.confirm_publish !== true) {
@@ -644,6 +651,38 @@ const shopInfo = {
         return JSON.stringify(result, null, 2);
     },
 };
+const shopAnalytics = {
+    name: 'aibot_tiktok_shop_analytics',
+    description: 'Shop performance analytics for a date range (default: last 30 days). Returns GMV split by channel ' +
+        '(LIVE / VIDEO / PRODUCT_CARD), gross revenue split (GMV_MAX / NON_GMV_MAX), orders_count, items_sold, ' +
+        'sku_orders_count, refunds, avg_customers_count, and traffic (visitors, page views, conversation rate). ' +
+        'Use this to answer "how much did we sell", "which channel drives revenue", "how is traffic trending". ' +
+        'Data lags ~2 days: `latest_available_date` in the response is the newest complete day. ' +
+        'Date range is [start_date, end_date).',
+    group: 'tiktok',
+    inputSchema: z.object({
+        start_date: z.string().optional().describe('YYYY-MM-DD, inclusive. Default: 30 days ago'),
+        end_date: z
+            .string()
+            .optional()
+            .describe('YYYY-MM-DD, exclusive. Default: today. Must be later than start_date'),
+        shop_id: z
+            .string()
+            .optional()
+            .describe('Shop ID belonging to the CURRENT API key\'s account; omit to use the most recently authorized shop'),
+    }),
+    handler: async (params, client) => {
+        const q = {};
+        if (params.start_date)
+            q.start_date_ge = String(params.start_date);
+        if (params.end_date)
+            q.end_date_lt = String(params.end_date);
+        if (params.shop_id)
+            q.shop_id = String(params.shop_id);
+        const result = await client.get('/api/v1/tiktok-shop/analytics/shop', q);
+        return JSON.stringify(result, null, 2);
+    },
+};
 // ─── Group ──────────────────────────────────────────
 export const tiktokShopTools = [
     // 店铺 & 授权
@@ -651,6 +690,8 @@ export const tiktokShopTools = [
     shopAuthorize,
     shopUnbind,
     shopInfo,
+    // 经营数据
+    shopAnalytics,
     // 类目 / 仓库 / 图片
     shopCategories,
     shopCategoryAttributes,

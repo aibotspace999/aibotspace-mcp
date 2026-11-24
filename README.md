@@ -13,7 +13,7 @@ AIBotSpace 统一 MCP 服务器 — 在 Claude Code / Codex / Cursor 等 AI 工�
 | 🕷️ 数据采集 | 10 | Bright Data：Amazon / TikTok / 社交媒体 / 通用网页抓取 |
 | 💬 HERMES 会话 | 3 | ChatGPT / Gemini / Claude / 千问 对话 |
 
-**共 63 个工具，一个 API Key 全部搞定。**
+**共 64 个工具，一个 API Key 全部搞定。**
 
 ## 快速开始
 
@@ -144,6 +144,7 @@ npm start        # 运行构建后的版本
 | `aibot_tiktok_shop_authorize` | 获取 OAuth 授权链接，用户在浏览器完成授权 |
 | `aibot_tiktok_shop_unbind` | 解除店铺授权（软删除，不影响 TikTok 侧） |
 | `aibot_tiktok_shop_info` | 卖家/店铺基础信息 |
+| `aibot_tiktok_shop_analytics` | 经营数据：GMV 分渠道 / 订单 / 销量 / 退款 / 访客（默认近 30 天） |
 
 **自己店铺 · 类目与仓库（3 个）**
 
@@ -270,7 +271,7 @@ Claude Code / Codex / Cursor
         ▼
 ┌───────────────────────────┐
 │   aibotspace-mcp-server   │  ← 本仓库
-│  63 tools, 统一认证        │
+│  64 tools, 统一认证        │
 └───────────┬───────────────┘
             │ HTTPS + Bearer Token
             ▼
