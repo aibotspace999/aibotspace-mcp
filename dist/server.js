@@ -2,22 +2,26 @@
 /**
  * AIBotSpace MCP Server
  *
- * Provides 63 tools across 5 groups:
- *   - creative:  AI image & video generation (5 tools)
- *   - tiktok:    TikTok market analytics via FastMoss (8) + own-shop store ops (24)
- *   - keepa:     Amazon market research via Keepa (13 tools)
- *   - scraper:   Web scraping via Bright Data (10 tools)
- *   - chat:      HERMES AI conversation (3 tools)
+ * Provides 64 tools across 6 groups. Load only what you need with `--preset`:
+ *
+ *   creative       image & video generation                 (5 tools)
+ *   tiktok-shop    own shop: auth, publish, orders, ship    (25 tools)
+ *   tiktok-research market data: products, shops, videos    (8 tools)
+ *   keepa          Amazon market research                   (13 tools)
+ *   scraper        web scraping via Bright Data             (10 tools)
+ *   chat           HERMES AI conversation                   (3 tools)
+ *
+ * Presets: all (default) | shop | research | video | scrape | chat
  *
  * Usage:
- *   AIBOTSPACE_API_KEY=sk-aibot-xxx npx @aibotspace/mcp-server
+ *   AIBOTSPACE_API_KEY=sk-aibot-xxx npx @aibotspace/mcp-server --preset shop
  *
  * Claude Code config (settings.json):
  *   {
  *     "mcpServers": {
- *       "aibotspace": {
+ *       "aibotspace-shop": {
  *         "command": "npx",
- *         "args": ["-y", "@aibotspace/mcp-server"],
+ *         "args": ["-y", "@aibotspace/mcp-server", "--preset", "shop"],
  *         "env": {
  *           "AIBOTSPACE_API_KEY": "sk-aibot-xxx"
  *         }
@@ -90,10 +94,23 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 async function main() {
     const groupInfo = getGroupInfo().filter((g) => config.enabledGroups.has(g.group));
     const totalTools = groupInfo.reduce((sum, g) => sum + g.toolCount, 0);
+    // Rough context cost of the tool definitions this session will load.
+    // ~3.8 chars per token for JSON with mostly-English text.
+    let payloadChars = 0;
+    for (const t of tools) {
+        payloadChars += JSON.stringify({
+            name: t.name,
+            description: t.description,
+            inputSchema: zodToJsonSchema(t.inputSchema),
+        }).length;
+    }
+    const approxTokens = Math.round(payloadChars / 3.8);
     console.error(`[aibotspace-mcp] Starting...`);
     console.error(`[aibotspace-mcp] API: ${config.baseUrl}`);
-    console.error(`[aibotspace-mcp] Groups: ${groupInfo.map((g) => `${g.label} (${g.toolCount})`).join(', ')}`);
+    console.error(`[aibotspace-mcp] Groups: ${groupInfo.map((g) => `${g.group} (${g.toolCount})`).join(', ')}`);
     console.error(`[aibotspace-mcp] Total tools: ${totalTools}`);
+    console.error(`[aibotspace-mcp] Tool definitions: ~${approxTokens} tokens` +
+        (totalTools === 64 ? ' (all groups; use --preset to load fewer)' : ''));
     const transport = new StdioServerTransport();
     await server.connect(transport);
     console.error('[aibotspace-mcp] Server running on stdio');

@@ -16,14 +16,13 @@
 import { z } from 'zod';
 import type { ToolDefinition, ToolGroupModule } from './register.js';
 import type { AibotSpaceClient } from '../client.js';
-import { tiktokShopTools } from './tiktokShop.js';
 
 // ─── TikTok Product Search ──────────────────────────────
 
 const tiktokProductSearch: ToolDefinition = {
   name: 'aibot_tiktok_product_search',
   description: 'Search TikTok Shop products by keyword. Returns: product title, price, sales volume, rating, shop name, product images, and affiliate commission rate. Useful for finding trending products and analyzing competition.',
-  group: 'tiktok',
+  group: 'tiktok-research',
   inputSchema: z.object({
     keyword: z.string().describe('Search keyword (e.g., "smart ring", "yoga mat")'),
     region: z.string().optional().default('US').describe('Region: US, UK, ID, MY, TH, VN, PH, SG'),
@@ -44,7 +43,7 @@ const tiktokProductSearch: ToolDefinition = {
 const tiktokHotVideos: ToolDefinition = {
   name: 'aibot_tiktok_hot_videos',
   description: 'Find trending/viral TikTok videos by keyword. Returns: video URL, view count, like count, comment count, share count, creator info, and associated product links. Perfect for content research and influencer discovery.',
-  group: 'tiktok',
+  group: 'tiktok-research',
   inputSchema: z.object({
     keyword: z.string().optional().describe('Search keyword or hashtag'),
     region: z.string().optional().default('US'),
@@ -63,7 +62,7 @@ const tiktokHotVideos: ToolDefinition = {
 const tiktokNewListed: ToolDefinition = {
   name: 'aibot_tiktok_new_listed',
   description: 'Get newly listed TikTok Shop products (launched in recent days). Returns: product details, launch date, initial sales, price. Ideal for spotting emerging trends before they become saturated.',
-  group: 'tiktok',
+  group: 'tiktok-research',
   inputSchema: z.object({
     region: z.string().optional().default('US'),
     categoryId: z.string().optional().describe('Category ID filter'),
@@ -81,7 +80,7 @@ const tiktokNewListed: ToolDefinition = {
 const tiktokTopSelling: ToolDefinition = {
   name: 'aibot_tiktok_top_selling',
   description: 'Get top-selling TikTok Shop products ranked by sales volume.',
-  group: 'tiktok',
+  group: 'tiktok-research',
   inputSchema: z.object({
     region: z.string().optional().default('US'),
     categoryId: z.string().optional(),
@@ -99,7 +98,7 @@ const tiktokTopSelling: ToolDefinition = {
 const tiktokCategories: ToolDefinition = {
   name: 'aibot_tiktok_categories',
   description: 'List all TikTok Shop product categories with IDs and hierarchy. Public endpoint, no auth required.',
-  group: 'tiktok',
+  group: 'tiktok-research',
   inputSchema: z.object({
     region: z.string().optional().default('US'),
   }),
@@ -115,7 +114,7 @@ const tiktokShopSearch: ToolDefinition = {
   name: 'aibot_tiktok_shop_search',
   description: 'Search TikTok Shop sellers/shops by name or keyword. Read-only market data from FastMoss — ' +
     'this is NOT your own store. For shops you have authorized, use aibot_tiktok_shop_list.',
-  group: 'tiktok',
+  group: 'tiktok-research',
   inputSchema: z.object({
     keyword: z.string().describe('Shop name or keyword'),
     region: z.string().optional().default('US'),
@@ -134,7 +133,7 @@ const tiktokShopProducts: ToolDefinition = {
   name: 'aibot_tiktok_shop_products',
   description: 'List products of a specific TikTok Shop (any shop, read-only market data from FastMoss). ' +
     'For products in YOUR authorized shop, use aibot_tiktok_shop_product_search instead.',
-  group: 'tiktok',
+  group: 'tiktok-research',
   inputSchema: z.object({
     shopId: z.string().describe('TikTok Shop ID'),
     region: z.string().optional().default('US'),
@@ -152,7 +151,7 @@ const tiktokShopProducts: ToolDefinition = {
 const tiktokProductVideos: ToolDefinition = {
   name: 'aibot_tiktok_product_videos',
   description: 'Get videos associated with a specific TikTok Shop product.',
-  group: 'tiktok',
+  group: 'tiktok-research',
   inputSchema: z.object({
     productId: z.string().describe('TikTok product ID'),
     region: z.string().optional().default('US'),
@@ -168,14 +167,12 @@ const tiktokProductVideos: ToolDefinition = {
 // ─── Group ──────────────────────────────────────────
 
 export const tiktokGroup: ToolGroupModule = {
-  group: 'tiktok',
-  label: 'TikTok Shop (Market Analytics + Store Listing)',
+  group: 'tiktok-research',
+  label: 'TikTok Market Research (read-only: find products, shops, videos, categories)',
   register() {
     return [
       tiktokProductSearch, tiktokHotVideos, tiktokNewListed, tiktokTopSelling,
       tiktokCategories, tiktokShopSearch, tiktokShopProducts, tiktokProductVideos,
-      // 店铺授权 + 上架（同一个 group，已在用 tiktok 的用户无需改配置）
-      ...tiktokShopTools,
     ];
   },
 };

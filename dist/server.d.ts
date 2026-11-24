@@ -2,22 +2,26 @@
 /**
  * AIBotSpace MCP Server
  *
- * Provides 63 tools across 5 groups:
- *   - creative:  AI image & video generation (5 tools)
- *   - tiktok:    TikTok market analytics via FastMoss (8) + own-shop store ops (24)
- *   - keepa:     Amazon market research via Keepa (13 tools)
- *   - scraper:   Web scraping via Bright Data (10 tools)
- *   - chat:      HERMES AI conversation (3 tools)
+ * Provides 64 tools across 6 groups. Load only what you need with `--preset`:
+ *
+ *   creative       image & video generation                 (5 tools)
+ *   tiktok-shop    own shop: auth, publish, orders, ship    (25 tools)
+ *   tiktok-research market data: products, shops, videos    (8 tools)
+ *   keepa          Amazon market research                   (13 tools)
+ *   scraper        web scraping via Bright Data             (10 tools)
+ *   chat           HERMES AI conversation                   (3 tools)
+ *
+ * Presets: all (default) | shop | research | video | scrape | chat
  *
  * Usage:
- *   AIBOTSPACE_API_KEY=sk-aibot-xxx npx @aibotspace/mcp-server
+ *   AIBOTSPACE_API_KEY=sk-aibot-xxx npx @aibotspace/mcp-server --preset shop
  *
  * Claude Code config (settings.json):
  *   {
  *     "mcpServers": {
- *       "aibotspace": {
+ *       "aibotspace-shop": {
  *         "command": "npx",
- *         "args": ["-y", "@aibotspace/mcp-server"],
+ *         "args": ["-y", "@aibotspace/mcp-server", "--preset", "shop"],
  *         "env": {
  *           "AIBOTSPACE_API_KEY": "sk-aibot-xxx"
  *         }

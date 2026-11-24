@@ -3,6 +3,11 @@
  *
  * The MCP protocol requires JSON Schema for tool input definitions.
  * This converts Zod schemas to JSON Schema format.
+ *
+ * IMPORTANT: `.describe()` text must be preserved — it is the only channel
+ * through which the model learns what a parameter means and what constraints
+ * apply (required companions, enum semantics, safety confirmations). Dropping
+ * it silently makes tools uncallable in practice.
  */
 
 import { z } from 'zod';
@@ -11,16 +16,39 @@ export function zodToJsonSchema(schema: z.ZodType): any {
   return convertZodType(schema);
 }
 
+/** Read the description attached by `.describe()` (lives on _def.description). */
+function readDescription(schema: z.ZodType): string | undefined {
+  const anySchema = schema as any;
+  const fromGetter = typeof anySchema.description === 'string' ? anySchema.description : undefined;
+  const fromDef = typeof anySchema._def?.description === 'string' ? anySchema._def.description : undefined;
+  const text = fromGetter || fromDef;
+  return text && text.trim() ? text.trim() : undefined;
+}
+
+/** Attach a description to an already-converted node. */
+function withDescription(node: any, schema: z.ZodType): any {
+  const text = readDescription(schema);
+  if (text) node.description = text;
+  return node;
+}
+
 function convertZodType(schema: z.ZodType): any {
   // Handle ZodOptional, ZodDefault, etc. by unwrapping
   if (schema instanceof z.ZodOptional || schema instanceof z.ZodNullable) {
-    return convertZodType((schema as any)._def.innerType);
+    return withDescription(convertZodType((schema as any)._def.innerType), schema);
   }
 
   if (schema instanceof z.ZodDefault) {
     const inner = convertZodType((schema as any)._def.innerType);
-    inner.default = (schema as any)._def.defaultValue();
-    return inner;
+    const dv = (schema as any)._def.defaultValue;
+    if (typeof dv === 'function') {
+      try {
+        inner.default = dv();
+      } catch {
+        /* default is not representable in JSON Schema; skip it */
+      }
+    }
+    return withDescription(inner, schema);
   }
 
   if (schema instanceof z.ZodObject) {
@@ -37,7 +65,7 @@ function convertZodType(schema: z.ZodType): any {
 
     const result: any = { type: 'object', properties };
     if (required.length > 0) result.required = required;
-    return result;
+    return withDescription(result, schema);
   }
 
   if (schema instanceof z.ZodString) {
@@ -47,7 +75,7 @@ function convertZodType(schema: z.ZodType): any {
     for (const check of checks) {
       if (check.kind === 'url') result.format = 'uri';
     }
-    return result;
+    return withDescription(result, schema);
   }
 
   if (schema instanceof z.ZodNumber) {
@@ -58,44 +86,53 @@ function convertZodType(schema: z.ZodType): any {
       if (check.kind === 'min') result.minimum = check.value;
       if (check.kind === 'max') result.maximum = check.value;
     }
-    return result;
+    return withDescription(result, schema);
   }
 
   if (schema instanceof z.ZodBoolean) {
-    return { type: 'boolean' };
+    return withDescription({ type: 'boolean' }, schema);
   }
 
   if (schema instanceof z.ZodArray) {
-    return {
-      type: 'array',
-      items: convertZodType((schema as any)._def.type),
-    };
+    return withDescription(
+      {
+        type: 'array',
+        items: convertZodType((schema as any)._def.type),
+      },
+      schema,
+    );
   }
 
   if (schema instanceof z.ZodEnum) {
-    return {
-      type: 'string',
-      enum: (schema as any)._def.values,
-    };
+    return withDescription(
+      {
+        type: 'string',
+        enum: (schema as any)._def.values,
+      },
+      schema,
+    );
   }
 
   if (schema instanceof z.ZodUnion) {
     const options = (schema as any)._def.options;
-    return {
-      oneOf: options.map((o: z.ZodType) => convertZodType(o)),
-    };
+    return withDescription(
+      {
+        oneOf: options.map((o: z.ZodType) => convertZodType(o)),
+      },
+      schema,
+    );
   }
 
   if (schema instanceof z.ZodLiteral) {
     const value = (schema as any)._def.value;
-    return { type: typeof value, const: value };
+    return withDescription({ type: typeof value, const: value }, schema);
   }
 
   if (schema instanceof z.ZodEffects) {
     // For transforms/effects, use the input schema
-    return convertZodType((schema as any)._def.schema);
+    return withDescription(convertZodType((schema as any)._def.schema), schema);
   }
 
   // Fallback
-  return { type: 'string' };
+  return withDescription({ type: 'string' }, schema);
 }

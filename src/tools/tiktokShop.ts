@@ -24,7 +24,7 @@ const shopList: ToolDefinition = {
     'List TikTok Shop stores authorized by the account that owns the CURRENT API key. ' +
     'Call this FIRST before any listing work. If the list is empty, call aibot_tiktok_shop_authorize ' +
     'to get an authorization URL the user opens in a browser.',
-  group: 'tiktok',
+  group: 'tiktok-shop',
   inputSchema: z.object({}),
   handler: async (_params, client) => {
     const result = await client.get('/api/v1/tiktok-shop/shops');
@@ -40,7 +40,7 @@ const shopAuthorize: ToolDefinition = {
     'Get a TikTok Shop OAuth authorization URL. The user must open this URL in a browser, log in with the shop owner account, ' +
     'and approve. After approving, the shop is bound to the current account automatically — then call aibot_tiktok_shop_list to confirm. ' +
     'This tool only returns a URL; it does not open a browser by itself.',
-  group: 'tiktok',
+  group: 'tiktok-shop',
   inputSchema: z.object({}),
   handler: async (_params, client) => {
     const result = await client.post('/api/v1/tiktok-shop/authorize');
@@ -56,7 +56,7 @@ const shopUnbind: ToolDefinition = {
     'Revoke the authorization of one shop (soft delete on our side — the shop is unbound from the current account, ' +
     'nothing is deleted inside TikTok itself). Only call after the user explicitly asks to disconnect a shop. ' +
     'Pass the `id` field returned by aibot_tiktok_shop_list.',
-  group: 'tiktok',
+  group: 'tiktok-shop',
   inputSchema: z.object({
     auth_id: z
       .union([z.number().int(), z.string()])
@@ -88,7 +88,7 @@ const shopCategories: ToolDefinition = {
     'List leaf categories the authorized shop is allowed to sell in. ' +
     'ALWAYS use this (instead of guessing) to obtain a category_id before publishing. ' +
     'Pass category_id to aibot_tiktok_shop_publish.',
-  group: 'tiktok',
+  group: 'tiktok-shop',
   inputSchema: z.object({
     keyword: z
       .string()
@@ -128,7 +128,7 @@ const shopCategoryAttributes: ToolDefinition = {
     'Call this after picking a category_id and before publishing; map required_attributes into ' +
     'product_attributes of aibot_tiktok_shop_publish. Some categories are strict — publishing without ' +
     'required attributes will fail.',
-  group: 'tiktok',
+  group: 'tiktok-shop',
   inputSchema: z.object({
     category_id: z.string().describe('Leaf category ID from aibot_tiktok_shop_categories'),
     shop_id: z.string().optional(),
@@ -153,7 +153,7 @@ const shopWarehouses: ToolDefinition = {
   description:
     'List the warehouses of the authorized shop. Publishing is blocked if the shop has no warehouse; ' +
     'use this to diagnose "no warehouse" errors before publishing.',
-  group: 'tiktok',
+  group: 'tiktok-shop',
   inputSchema: z.object({
     shop_id: z.string().optional(),
   }),
@@ -170,13 +170,11 @@ const shopWarehouses: ToolDefinition = {
 const shopPublish: ToolDefinition = {
   name: 'aibot_tiktok_shop_publish',
   description:
-    'Publish a product to the authorized TikTok Shop. WARNING: this CREATES AND ACTIVATES a real product that goes into ' +
-    'TikTok review — it is not a saved draft. Only call it after the user explicitly agrees to publish, and after you have ' +
-    'resolved category_id via aibot_tiktok_shop_categories and checked required attributes. ' +
-    'Images must be publicly reachable HTTP(S) URLs. ' +
-    'If it fails, the server returns resume_hint and keeps a checkpoint: re-submit with IDENTICAL parameters to resume ' +
-    'without re-uploading images or duplicating drafts.',
-  group: 'tiktok',
+    'Publish a REAL product to the authorized shop — it goes into TikTok review, not a saved draft. ' +
+    'Requires explicit user consent and a category_id resolved via aibot_tiktok_shop_categories. ' +
+    'Images must be public HTTP(S) URLs. On failure the server keeps a checkpoint: resubmit identical ' +
+    'params to resume without re-uploading or duplicating drafts.',
+  group: 'tiktok-shop',
   inputSchema: z.object({
     confirm_publish: z
       .boolean()
@@ -313,7 +311,7 @@ const productSearch: ToolDefinition = {
   description:
     'List the products of the authorized shop, paginated. Use this to find product_id / sku_id before price or stock updates. ' +
     'Filters are passed to TikTok verbatim via filters_json (e.g. {"status":"ACTIVE"}).',
-  group: 'tiktok',
+  group: 'tiktok-shop',
   inputSchema: z.object({
     page_size: z.number().int().min(1).max(100).optional().default(20),
     page_token: z.string().optional().describe('Cursor from the previous response (next_page_token)'),
@@ -341,7 +339,7 @@ const productGet: ToolDefinition = {
   description:
     'Get one product by product_id, including SKUs (sku id, price, inventory, sales attributes). ' +
     'Call this before updating price/stock to obtain the sku ids.',
-  group: 'tiktok',
+  group: 'tiktok-shop',
   inputSchema: z.object({
     product_id: z.string().describe('Product ID'),
     shop_id: z.string().optional(),
@@ -362,7 +360,7 @@ const productUpdatePrice: ToolDefinition = {
   description:
     'Update SKU prices of a product. Prices are per SKU — get sku ids from aibot_tiktok_shop_product_get first. ' +
     'Currency defaults to the shop marketplace currency.',
-  group: 'tiktok',
+  group: 'tiktok-shop',
   inputSchema: z.object({
     product_id: z.string(),
     skus: z
@@ -392,7 +390,7 @@ const productUpdateStock: ToolDefinition = {
   description:
     'Update SKU inventory of a product. Each entry needs the sku id, the warehouse_id and the quantity. ' +
     'Use aibot_tiktok_shop_warehouses when you do not know the warehouse id.',
-  group: 'tiktok',
+  group: 'tiktok-shop',
   inputSchema: z.object({
     product_id: z.string(),
     skus: z
@@ -420,7 +418,7 @@ const productUpdateStock: ToolDefinition = {
 const inventoryCheck: ToolDefinition = {
   name: 'aibot_tiktok_shop_inventory_check',
   description: 'Query current inventory for up to 50 products at once.',
-  group: 'tiktok',
+  group: 'tiktok-shop',
   inputSchema: z.object({
     product_ids: z.array(z.string()).describe('Product IDs (max 50)'),
     shop_id: z.string().optional(),
@@ -437,7 +435,7 @@ const productActivate: ToolDefinition = {
   name: 'aibot_tiktok_shop_product_activate',
   description:
     'Activate (put on sale) up to 20 products. Use after a draft product is created and reviewed.',
-  group: 'tiktok',
+  group: 'tiktok-shop',
   inputSchema: z.object({
     product_ids: z.array(z.string()).describe('Product IDs (max 20)'),
     shop_id: z.string().optional(),
@@ -454,7 +452,7 @@ const productDeactivate: ToolDefinition = {
   name: 'aibot_tiktok_shop_product_deactivate',
   description:
     'Deactivate (take off sale) up to 20 products. Reversible — the product stays in the shop as inactive.',
-  group: 'tiktok',
+  group: 'tiktok-shop',
   inputSchema: z.object({
     product_ids: z.array(z.string()).describe('Product IDs (max 20)'),
     shop_id: z.string().optional(),
@@ -472,7 +470,7 @@ const productDelete: ToolDefinition = {
   description:
     'PERMANENTLY delete up to 20 products from the shop. This cannot be undone. ' +
     'Only call after the user explicitly confirms which products to delete; prefer aibot_tiktok_shop_product_deactivate when unsure.',
-  group: 'tiktok',
+  group: 'tiktok-shop',
   inputSchema: z.object({
     confirm_delete: z.boolean().describe('Must be true; set only after the user explicitly agreed to delete'),
     product_ids: z.array(z.string()).describe('Product IDs to delete (max 20)'),
@@ -504,7 +502,7 @@ const orderSearch: ToolDefinition = {
   description:
     'List orders of the authorized shop, paginated. Filters go to TikTok verbatim via filters_json ' +
     '(e.g. {"order_status":"AWAITING_SHIPMENT"} or {"create_time_ge":1730000000}).',
-  group: 'tiktok',
+  group: 'tiktok-shop',
   inputSchema: z.object({
     page_size: z.number().int().min(1).max(100).optional().default(20),
     page_token: z.string().optional(),
@@ -532,7 +530,7 @@ const orderGet: ToolDefinition = {
   description:
     'Get full details of up to 50 orders by order id (line items, amounts, shipping, status). ' +
     'Get order ids from aibot_tiktok_shop_orders.',
-  group: 'tiktok',
+  group: 'tiktok-shop',
   inputSchema: z.object({
     order_ids: z.array(z.string()).describe('Order ids (max 50)'),
     shop_id: z.string().optional(),
@@ -552,7 +550,7 @@ const packageSearch: ToolDefinition = {
   description:
     'List fulfilment packages, paginated. A package is what you actually ship; ' +
     'use it to find package_id before calling aibot_tiktok_shop_package_ship.',
-  group: 'tiktok',
+  group: 'tiktok-shop',
   inputSchema: z.object({
     page_size: z.number().int().min(1).max(100).optional().default(20),
     page_token: z.string().optional(),
@@ -578,7 +576,7 @@ const packageSearch: ToolDefinition = {
 const packageGet: ToolDefinition = {
   name: 'aibot_tiktok_shop_package_get',
   description: 'Get one package by package_id, including order ids, items and shipping status.',
-  group: 'tiktok',
+  group: 'tiktok-shop',
   inputSchema: z.object({
     package_id: z.string(),
     shop_id: z.string().optional(),
@@ -600,7 +598,7 @@ const packageShip: ToolDefinition = {
     'Ship a package with a self-arranged carrier. THIS IS A REAL SHIPMENT: the buyer sees the tracking number and the order moves to shipped. ' +
     'Requires shipping_provider_id (see it in Seller Center / package detail) and tracking_number. ' +
     'Only call after the user confirms the carrier and tracking number.',
-  group: 'tiktok',
+  group: 'tiktok-shop',
   inputSchema: z.object({
     confirm_ship: z.boolean().describe('Must be true; set only after the user confirmed the shipment'),
     package_id: z.string(),
@@ -642,7 +640,7 @@ const returnSearch: ToolDefinition = {
   description:
     'List after-sales (return / refund) requests of the shop, paginated. ' +
     'Use it to find return_id, then call aibot_tiktok_shop_return_decide.',
-  group: 'tiktok',
+  group: 'tiktok-shop',
   inputSchema: z.object({
     page_size: z.number().int().min(1).max(100).optional().default(20),
     page_token: z.string().optional(),
@@ -664,7 +662,7 @@ const returnDecide: ToolDefinition = {
   description:
     'Approve or reject an after-sales request. This affects the buyer directly, so only call after the user explicitly decides. ' +
     'REJECT requires a reject_reason.',
-  group: 'tiktok',
+  group: 'tiktok-shop',
   inputSchema: z.object({
     confirm_decision: z.boolean().describe('Must be true; set only after the user explicitly made the decision'),
     return_id: z.string(),
@@ -703,7 +701,7 @@ const returnDecide: ToolDefinition = {
 const promotionSearch: ToolDefinition = {
   name: 'aibot_tiktok_shop_promotions',
   description: 'List promotion activities (campaigns, discounts) of the shop, paginated.',
-  group: 'tiktok',
+  group: 'tiktok-shop',
   inputSchema: z.object({
     page_size: z.number().int().min(1).max(100).optional().default(20),
     page_token: z.string().optional(),
@@ -729,7 +727,7 @@ const promotionSearch: ToolDefinition = {
 const shopInfo: ToolDefinition = {
   name: 'aibot_tiktok_shop_info',
   description: 'Get seller/shop profile info (shop name, region, seller type) for the authorized shop.',
-  group: 'tiktok',
+  group: 'tiktok-shop',
   inputSchema: z.object({
     shop_id: z.string().optional(),
   }),
@@ -744,13 +742,11 @@ const shopInfo: ToolDefinition = {
 const shopAnalytics: ToolDefinition = {
   name: 'aibot_tiktok_shop_analytics',
   description:
-    'Shop performance analytics for a date range (default: last 30 days). Returns GMV split by channel ' +
-    '(LIVE / VIDEO / PRODUCT_CARD), gross revenue split (GMV_MAX / NON_GMV_MAX), orders_count, items_sold, ' +
-    'sku_orders_count, refunds, avg_customers_count, and traffic (visitors, page views, conversation rate). ' +
-    'Use this to answer "how much did we sell", "which channel drives revenue", "how is traffic trending". ' +
-    'Data lags ~2 days: `latest_available_date` in the response is the newest complete day. ' +
-    'Date range is [start_date, end_date).',
-  group: 'tiktok',
+    'Shop performance for a date range (default: last 30 days): GMV split by channel (LIVE / VIDEO / PRODUCT_CARD), ' +
+    'gross revenue (GMV_MAX / NON_GMV_MAX), orders, items sold, SKU orders, refunds, customers, and traffic ' +
+    '(visitors, page views, conversation rate). Data lags ~2 days; `latest_available_date` is the newest complete day. ' +
+    'Range is [start_date, end_date).',
+  group: 'tiktok-shop',
   inputSchema: z.object({
     start_date: z.string().optional().describe('YYYY-MM-DD, inclusive. Default: 30 days ago'),
     end_date: z
@@ -812,8 +808,8 @@ export const tiktokShopTools: ToolDefinition[] = [
 ];
 
 export const tiktokShopGroup: ToolGroupModule = {
-  group: 'tiktok',
-  label: 'TikTok Shop Listing (OAuth + Publish)',
+  group: 'tiktok-shop',
+  label: 'TikTok Shop Seller Ops (own shop: auth, publish, orders, shipping, returns, analytics)',
   register() {
     return tiktokShopTools;
   },

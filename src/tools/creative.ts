@@ -130,14 +130,7 @@ const generateVideo: ToolDefinition = {
   name: 'aibot_generate_video',
   description: `Generate AI videos from text and/or reference media.
 Models: omni (fast, 10s fixed), seedance2 series (best quality, up to 15s), minimax-h3 (high-res), muse (Meta Muse, 4-60s, native audio), sora2, veo (Google Veo 3.1).
-Supports image_urls, video_urls, audio_urls as reference material.
-
-Model limits:
-- muse: 720p fixed, aspect_ratio 16:9 / 9:16, duration 4-60s (default 10), max 4 image_urls, no video_urls/audio_urls, sound is generated natively.
-- omni: 10s fixed and 720p fixed (duration/resolution tunings are ignored), aspect_ratio 16:9 / 9:16, max 7 image_urls, no video_urls/audio_urls.
-- veo: max 8s per clip, resolution 720p / 1080p / 4k, up to 4 reference images; use start_frame_url + end_frame_url for first/last-frame (frames) mode.
-- sora2: max 12s, aspect_ratio 16:9 / 9:16, only the first image_url is used.
-- seedance2 / minimax-h3: duration 4-15s (default 5), 15s is supported.`,
+Reference material via image_urls / video_urls / audio_urls. Per-model limits are documented on each parameter.`,
   group: 'creative',
   inputSchema: z.object({
     prompt: z.string().describe('Text description of the video to generate'),

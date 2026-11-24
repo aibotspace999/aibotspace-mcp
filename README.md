@@ -4,16 +4,45 @@ AIBotSpace 统一 MCP 服务器 — 在 Claude Code / Codex / Cursor 等 AI 工�
 
 ## 功能
 
-| 组 | 工具数 | 说明 |
-|---|---|---|
-| 🎨 AI 创作 | 5 | GPT Image 2 / NANO2 / NANO PRO 生图；Seedance / MiniMax H3 / Muse / Omni / Sora / Veo 生视频 |
-| 🎵 TikTok 选品 | 8 | FastMoss：商品搜索、热门视频、新品榜、销量榜、店铺搜索 |
-| 🛒 TikTok 店铺 | 24 | 授权店铺 → 上架/商品/改价/库存 → 订单 → 发货 → 售后 → 促销 |
-| 📊 Amazon 分析 | 13 | Keepa：商品详情、蓝海选品、畅销榜、促销、卖家筛选、价格追踪 |
-| 🕷️ 数据采集 | 10 | Bright Data：Amazon / TikTok / 社交媒体 / 通用网页抓取 |
-| 💬 HERMES 会话 | 3 | ChatGPT / Gemini / Claude / 千问 对话 |
+| 组 | 工具数 | 约 tokens | 预设 | 说明 |
+|---|---|---|---|---|
+| 🎨 AI 创作 | 5 | 970 | `video` | GPT Image 2 / NANO2 / NANO PRO 生图；Seedance / MiniMax H3 / Muse / Omni / Sora / Veo 生视频 |
+| 🛒 TikTok 店铺 | 25 | 4,200 | `shop` | 授权店铺 → 上架/商品/改价/库存 → 订单 → 发货 → 售后 → 促销 → 经营数据 |
+| 🎵 TikTok 选品 | 8 | 870 | `research` | FastMoss：商品搜索、热门视频、新品榜、销量榜、店铺搜索 |
+| 📊 Amazon 分析 | 13 | 1,600 | `research` | Keepa：商品详情、蓝海选品、畅销榜、促销、卖家筛选、价格追踪 |
+| 🕷️ 数据采集 | 10 | 900 | `scrape` | Bright Data：Amazon / TikTok / 社交媒体 / 通用网页抓取 |
+| 💬 HERMES 会话 | 3 | 320 | `chat` | ChatGPT / Gemini / Claude / 千问 对话 |
 
-**共 64 个工具，一个 API Key 全部搞定。**
+**共 64 个工具，一个 API Key 全部搞定。** 全量加载约 10,200 tokens，按需加载可降到 4,200（店铺）或 970（视频）。
+
+## 按需加载（推荐）
+
+工具定义会占用模型上下文——用不到的工具同样会出现在每一轮请求里。只加载用得上的组，既省上下文，也让模型更容易选对工具。
+
+用 `--preset` 指定，可逗号组合：
+
+| 预设 | 工具数 | 约 tokens | 适用场景 |
+|---|---|---|---|
+| `all` | 64 | 10,200 | 全都要（不指定时的默认值） |
+| `shop` | 25 | 4,200 | TikTok 店铺日常运营 |
+| `research` | 21 | 3,500 | TikTok 选品 + Amazon 市场分析 |
+| `video` | 5 | 970 | 只做生图 / 生视频 |
+| `scrape` | 10 | 900 | 只做网页采集 |
+| `chat` | 3 | 320 | 只做对话 |
+
+```json
+{
+  "mcpServers": {
+    "aibotspace-shop": {
+      "command": "npx",
+      "args": ["-y", "github:aibotspace999/aibotspace-mcp", "--preset", "shop"],
+      "env": { "AIBOTSPACE_API_KEY": "sk-aibot-xxx" }
+    }
+  }
+}
+```
+
+组合多个：`"--preset", "shop,video"` → 30 个工具、约 5,100 tokens。也可以用环境变量 `AIBOTSPACE_PRESET=shop`，效果相同。
 
 ## 快速开始
 
@@ -248,19 +277,22 @@ npm start        # 运行构建后的版本
 |---|---|---|
 | `AIBOTSPACE_API_KEY` | ✅ | API Key |
 | `AIBOTSPACE_BASE_URL` | | API 地址（默认 `https://aibotspace.com`） |
-| `ENABLE_GROUPS` | | 启用的工具组，逗号分隔（默认全部） |
+| `AIBOTSPACE_PRESET` | | 预设名，可逗号组合（`shop` / `research` / `video` …），等价于 `--preset` |
+| `ENABLE_GROUPS` | | 精确指定组名，逗号分隔：`creative` / `tiktok-shop` / `tiktok-research` / `keepa` / `scraper` / `chat` |
 | `LOG_LEVEL` | | 日志级别（默认 `info`） |
 
-按组启用示例：
+按组精确启用的示例：
 
 ```json
 {
   "env": {
     "AIBOTSPACE_API_KEY": "sk-aibot-xxx",
-    "ENABLE_GROUPS": "creative,tiktok,keepa"
+    "ENABLE_GROUPS": "tiktok-shop,creative"
   }
 }
 ```
+
+> 兼容说明：`ENABLE_GROUPS=tiktok` 仍然有效，等价于 `tiktok-research,tiktok-shop`（33 个工具），老配置无需改动。
 
 ## 架构
 
@@ -271,7 +303,7 @@ Claude Code / Codex / Cursor
         ▼
 ┌───────────────────────────┐
 │   aibotspace-mcp-server   │  ← 本仓库
-│  64 tools, 统一认证        │
+│  64 tools (按需加载)       │
 └───────────┬───────────────┘
             │ HTTPS + Bearer Token
             ▼
