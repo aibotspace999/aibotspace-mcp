@@ -295,16 +295,476 @@ const shopPublish: ToolDefinition = {
   },
 };
 
+// ═══ 商品管理 ═════════════════════════════════════════
+
+const productSearch: ToolDefinition = {
+  name: 'aibot_tiktok_shop_product_search',
+  description:
+    'List the products of the authorized shop, paginated. Use this to find product_id / sku_id before price or stock updates. ' +
+    'Filters are passed to TikTok verbatim via filters_json (e.g. {"status":"ACTIVE"}).',
+  group: 'tiktok',
+  inputSchema: z.object({
+    page_size: z.number().int().min(1).max(100).optional().default(20),
+    page_token: z.string().optional().describe('Cursor from the previous response (next_page_token)'),
+    filters_json: z.string().optional().describe('Raw TikTok filter object as JSON, e.g. {"status":"ACTIVE"}'),
+    shop_id: z.string().optional(),
+  }),
+  handler: async (params, client) => {
+    const body: Record<string, unknown> = { page_size: params.page_size };
+    if (params.page_token) body.page_token = params.page_token;
+    if (params.filters_json) {
+      try {
+        body.filters = JSON.parse(String(params.filters_json));
+      } catch {
+        return JSON.stringify({ success: false, error: 'filters_json 不是合法 JSON' }, null, 2);
+      }
+    }
+    if (params.shop_id) body.shop_id = params.shop_id;
+    const result = await client.post('/api/v1/tiktok-shop/products/search', body);
+    return JSON.stringify(result, null, 2);
+  },
+};
+
+const productGet: ToolDefinition = {
+  name: 'aibot_tiktok_shop_product_get',
+  description:
+    'Get one product by product_id, including SKUs (sku id, price, inventory, sales attributes). ' +
+    'Call this before updating price/stock to obtain the sku ids.',
+  group: 'tiktok',
+  inputSchema: z.object({
+    product_id: z.string().describe('Product ID'),
+    shop_id: z.string().optional(),
+  }),
+  handler: async (params, client) => {
+    const q: Record<string, string> = {};
+    if (params.shop_id) q.shop_id = String(params.shop_id);
+    const result = await client.get(
+      `/api/v1/tiktok-shop/products/${encodeURIComponent(String(params.product_id))}`,
+      q,
+    );
+    return JSON.stringify(result, null, 2);
+  },
+};
+
+const productUpdatePrice: ToolDefinition = {
+  name: 'aibot_tiktok_shop_product_update_price',
+  description:
+    'Update SKU prices of a product. Prices are per SKU — get sku ids from aibot_tiktok_shop_product_get first. ' +
+    'Currency defaults to the shop marketplace currency.',
+  group: 'tiktok',
+  inputSchema: z.object({
+    product_id: z.string(),
+    skus: z
+      .array(
+        z.object({
+          id: z.string().describe('SKU id'),
+          price_amount: z.string().describe('New price as string, e.g. "29.99"'),
+          price_currency: z.string().optional(),
+        }),
+      )
+      .describe('SKUs to update'),
+    shop_id: z.string().optional(),
+  }),
+  handler: async (params, client) => {
+    const body: any = { skus: params.skus };
+    if (params.shop_id) body.shop_id = params.shop_id;
+    const result = await client.post(
+      `/api/v1/tiktok-shop/products/${encodeURIComponent(String(params.product_id))}/prices`,
+      body,
+    );
+    return JSON.stringify(result, null, 2);
+  },
+};
+
+const productUpdateStock: ToolDefinition = {
+  name: 'aibot_tiktok_shop_product_update_stock',
+  description:
+    'Update SKU inventory of a product. Each entry needs the sku id, the warehouse_id and the quantity. ' +
+    'Use aibot_tiktok_shop_warehouses when you do not know the warehouse id.',
+  group: 'tiktok',
+  inputSchema: z.object({
+    product_id: z.string(),
+    skus: z
+      .array(
+        z.object({
+          id: z.string().describe('SKU id'),
+          warehouse_id: z.string(),
+          quantity: z.number().int().min(0),
+        }),
+      )
+      .describe('SKU inventory entries'),
+    shop_id: z.string().optional(),
+  }),
+  handler: async (params, client) => {
+    const body: any = { skus: params.skus };
+    if (params.shop_id) body.shop_id = params.shop_id;
+    const result = await client.post(
+      `/api/v1/tiktok-shop/products/${encodeURIComponent(String(params.product_id))}/inventory`,
+      body,
+    );
+    return JSON.stringify(result, null, 2);
+  },
+};
+
+const inventoryCheck: ToolDefinition = {
+  name: 'aibot_tiktok_shop_inventory_check',
+  description: 'Query current inventory for up to 50 products at once.',
+  group: 'tiktok',
+  inputSchema: z.object({
+    product_ids: z.array(z.string()).describe('Product IDs (max 50)'),
+    shop_id: z.string().optional(),
+  }),
+  handler: async (params, client) => {
+    const body: any = { product_ids: params.product_ids };
+    if (params.shop_id) body.shop_id = params.shop_id;
+    const result = await client.post('/api/v1/tiktok-shop/inventory/search', body);
+    return JSON.stringify(result, null, 2);
+  },
+};
+
+const productActivate: ToolDefinition = {
+  name: 'aibot_tiktok_shop_product_activate',
+  description:
+    'Activate (put on sale) up to 20 products. Use after a draft product is created and reviewed.',
+  group: 'tiktok',
+  inputSchema: z.object({
+    product_ids: z.array(z.string()).describe('Product IDs (max 20)'),
+    shop_id: z.string().optional(),
+  }),
+  handler: async (params, client) => {
+    const body: any = { product_ids: params.product_ids };
+    if (params.shop_id) body.shop_id = params.shop_id;
+    const result = await client.post('/api/v1/tiktok-shop/products/activate', body);
+    return JSON.stringify(result, null, 2);
+  },
+};
+
+const productDeactivate: ToolDefinition = {
+  name: 'aibot_tiktok_shop_product_deactivate',
+  description:
+    'Deactivate (take off sale) up to 20 products. Reversible — the product stays in the shop as inactive.',
+  group: 'tiktok',
+  inputSchema: z.object({
+    product_ids: z.array(z.string()).describe('Product IDs (max 20)'),
+    shop_id: z.string().optional(),
+  }),
+  handler: async (params, client) => {
+    const body: any = { product_ids: params.product_ids };
+    if (params.shop_id) body.shop_id = params.shop_id;
+    const result = await client.post('/api/v1/tiktok-shop/products/deactivate', body);
+    return JSON.stringify(result, null, 2);
+  },
+};
+
+const productDelete: ToolDefinition = {
+  name: 'aibot_tiktok_shop_product_delete',
+  description:
+    'PERMANENTLY delete up to 20 products from the shop. This cannot be undone. ' +
+    'Only call after the user explicitly confirms which products to delete; prefer aibot_tiktok_shop_product_deactivate when unsure.',
+  group: 'tiktok',
+  inputSchema: z.object({
+    confirm_delete: z.boolean().describe('Must be true; set only after the user explicitly agreed to delete'),
+    product_ids: z.array(z.string()).describe('Product IDs to delete (max 20)'),
+    shop_id: z.string().optional(),
+  }),
+  handler: async (params, client) => {
+    if (params.confirm_delete !== true) {
+      return JSON.stringify(
+        {
+          success: false,
+          error: 'confirm_delete 必须显式为 true',
+          message: '删除不可恢复。请先向用户确认要删除的商品，得到明确同意后把 confirm_delete 设为 true；若只是想停售，用下架工具。',
+        },
+        null,
+        2,
+      );
+    }
+    const body: any = { product_ids: params.product_ids };
+    if (params.shop_id) body.shop_id = params.shop_id;
+    const result = await client.delete('/api/v1/tiktok-shop/products', body);
+    return JSON.stringify(result, null, 2);
+  },
+};
+
+// ═══ 订单 ═════════════════════════════════════════════
+
+const orderSearch: ToolDefinition = {
+  name: 'aibot_tiktok_shop_orders',
+  description:
+    'List orders of the authorized shop, paginated. Filters go to TikTok verbatim via filters_json ' +
+    '(e.g. {"order_status":"AWAITING_SHIPMENT"} or {"create_time_ge":1730000000}).',
+  group: 'tiktok',
+  inputSchema: z.object({
+    page_size: z.number().int().min(1).max(100).optional().default(20),
+    page_token: z.string().optional(),
+    filters_json: z.string().optional().describe('Raw TikTok filter object as JSON'),
+    shop_id: z.string().optional(),
+  }),
+  handler: async (params, client) => {
+    const body: Record<string, unknown> = { page_size: params.page_size };
+    if (params.page_token) body.page_token = params.page_token;
+    if (params.filters_json) {
+      try {
+        body.filters = JSON.parse(String(params.filters_json));
+      } catch {
+        return JSON.stringify({ success: false, error: 'filters_json 不是合法 JSON' }, null, 2);
+      }
+    }
+    if (params.shop_id) body.shop_id = params.shop_id;
+    const result = await client.post('/api/v1/tiktok-shop/orders/search', body);
+    return JSON.stringify(result, null, 2);
+  },
+};
+
+const orderGet: ToolDefinition = {
+  name: 'aibot_tiktok_shop_order_get',
+  description:
+    'Get full details of up to 50 orders by order id (line items, amounts, shipping, status). ' +
+    'Get order ids from aibot_tiktok_shop_orders.',
+  group: 'tiktok',
+  inputSchema: z.object({
+    order_ids: z.array(z.string()).describe('Order ids (max 50)'),
+    shop_id: z.string().optional(),
+  }),
+  handler: async (params, client) => {
+    const q: Record<string, string> = { ids: params.order_ids.join(',') };
+    if (params.shop_id) q.shop_id = String(params.shop_id);
+    const result = await client.get('/api/v1/tiktok-shop/orders', q);
+    return JSON.stringify(result, null, 2);
+  },
+};
+
+// ═══ 履约 / 发货 ══════════════════════════════════════
+
+const packageSearch: ToolDefinition = {
+  name: 'aibot_tiktok_shop_packages',
+  description:
+    'List fulfilment packages, paginated. A package is what you actually ship; ' +
+    'use it to find package_id before calling aibot_tiktok_shop_package_ship.',
+  group: 'tiktok',
+  inputSchema: z.object({
+    page_size: z.number().int().min(1).max(100).optional().default(20),
+    page_token: z.string().optional(),
+    filters_json: z.string().optional().describe('Raw TikTok filter object as JSON'),
+    shop_id: z.string().optional(),
+  }),
+  handler: async (params, client) => {
+    const body: Record<string, unknown> = { page_size: params.page_size };
+    if (params.page_token) body.page_token = params.page_token;
+    if (params.filters_json) {
+      try {
+        body.filters = JSON.parse(String(params.filters_json));
+      } catch {
+        return JSON.stringify({ success: false, error: 'filters_json 不是合法 JSON' }, null, 2);
+      }
+    }
+    if (params.shop_id) body.shop_id = params.shop_id;
+    const result = await client.post('/api/v1/tiktok-shop/packages/search', body);
+    return JSON.stringify(result, null, 2);
+  },
+};
+
+const packageGet: ToolDefinition = {
+  name: 'aibot_tiktok_shop_package_get',
+  description: 'Get one package by package_id, including order ids, items and shipping status.',
+  group: 'tiktok',
+  inputSchema: z.object({
+    package_id: z.string(),
+    shop_id: z.string().optional(),
+  }),
+  handler: async (params, client) => {
+    const q: Record<string, string> = {};
+    if (params.shop_id) q.shop_id = String(params.shop_id);
+    const result = await client.get(
+      `/api/v1/tiktok-shop/packages/${encodeURIComponent(String(params.package_id))}`,
+      q,
+    );
+    return JSON.stringify(result, null, 2);
+  },
+};
+
+const packageShip: ToolDefinition = {
+  name: 'aibot_tiktok_shop_package_ship',
+  description:
+    'Ship a package with a self-arranged carrier. THIS IS A REAL SHIPMENT: the buyer sees the tracking number and the order moves to shipped. ' +
+    'Requires shipping_provider_id (see it in Seller Center / package detail) and tracking_number. ' +
+    'Only call after the user confirms the carrier and tracking number.',
+  group: 'tiktok',
+  inputSchema: z.object({
+    confirm_ship: z.boolean().describe('Must be true; set only after the user confirmed the shipment'),
+    package_id: z.string(),
+    shipping_provider_id: z.string().describe('Carrier id from TikTok (Seller Center → shipping settings)'),
+    tracking_number: z.string(),
+    shipping_provider_name: z.string().optional(),
+    shop_id: z.string().optional(),
+  }),
+  handler: async (params, client) => {
+    if (params.confirm_ship !== true) {
+      return JSON.stringify(
+        {
+          success: false,
+          error: 'confirm_ship 必须显式为 true',
+          message: '这是真实发货：买家会看到运单号，订单状态变为已发货且不可撤回。请先与用户确认承运商与运单号。',
+        },
+        null,
+        2,
+      );
+    }
+    const body: any = {
+      shipping_provider_id: params.shipping_provider_id,
+      tracking_number: params.tracking_number,
+    };
+    if (params.shipping_provider_name) body.shipping_provider_name = params.shipping_provider_name;
+    if (params.shop_id) body.shop_id = params.shop_id;
+    const result = await client.post(
+      `/api/v1/tiktok-shop/packages/${encodeURIComponent(String(params.package_id))}/ship`,
+      body,
+    );
+    return JSON.stringify(result, null, 2);
+  },
+};
+
+// ═══ 售后 / 退款 ══════════════════════════════════════
+
+const returnSearch: ToolDefinition = {
+  name: 'aibot_tiktok_shop_returns',
+  description:
+    'List after-sales (return / refund) requests of the shop, paginated. ' +
+    'Use it to find return_id, then call aibot_tiktok_shop_return_decide.',
+  group: 'tiktok',
+  inputSchema: z.object({
+    page_size: z.number().int().min(1).max(100).optional().default(20),
+    page_token: z.string().optional(),
+    return_ids: z.array(z.string()).optional().describe('Query specific return ids'),
+    shop_id: z.string().optional(),
+  }),
+  handler: async (params, client) => {
+    const body: Record<string, unknown> = { page_size: params.page_size };
+    if (params.page_token) body.page_token = params.page_token;
+    if (params.return_ids?.length) body.return_ids = params.return_ids;
+    if (params.shop_id) body.shop_id = params.shop_id;
+    const result = await client.post('/api/v1/tiktok-shop/returns/search', body);
+    return JSON.stringify(result, null, 2);
+  },
+};
+
+const returnDecide: ToolDefinition = {
+  name: 'aibot_tiktok_shop_return_decide',
+  description:
+    'Approve or reject an after-sales request. This affects the buyer directly, so only call after the user explicitly decides. ' +
+    'REJECT requires a reject_reason.',
+  group: 'tiktok',
+  inputSchema: z.object({
+    confirm_decision: z.boolean().describe('Must be true; set only after the user explicitly made the decision'),
+    return_id: z.string(),
+    decision: z.enum(['APPROVE', 'REJECT']),
+    reject_reason: z.string().optional().describe('Required when decision is REJECT'),
+    shop_id: z.string().optional(),
+  }),
+  handler: async (params, client) => {
+    if (params.confirm_decision !== true) {
+      return JSON.stringify(
+        {
+          success: false,
+          error: 'confirm_decision 必须显式为 true',
+          message: '同意/拒绝售后会直接影响买家。请先向用户确认处理意见，再把这位置为 true。',
+        },
+        null,
+        2,
+      );
+    }
+    if (params.decision === 'REJECT' && !params.reject_reason) {
+      return JSON.stringify({ success: false, error: '拒绝售后必须提供 reject_reason' }, null, 2);
+    }
+    const body: any = { decision: params.decision };
+    if (params.reject_reason) body.reject_reason = params.reject_reason;
+    if (params.shop_id) body.shop_id = params.shop_id;
+    const result = await client.post(
+      `/api/v1/tiktok-shop/returns/${encodeURIComponent(String(params.return_id))}/decision`,
+      body,
+    );
+    return JSON.stringify(result, null, 2);
+  },
+};
+
+// ═══ 营销 / 店铺 ══════════════════════════════════════
+
+const promotionSearch: ToolDefinition = {
+  name: 'aibot_tiktok_shop_promotions',
+  description: 'List promotion activities (campaigns, discounts) of the shop, paginated.',
+  group: 'tiktok',
+  inputSchema: z.object({
+    page_size: z.number().int().min(1).max(100).optional().default(20),
+    page_token: z.string().optional(),
+    filters_json: z.string().optional(),
+    shop_id: z.string().optional(),
+  }),
+  handler: async (params, client) => {
+    const body: Record<string, unknown> = { page_size: params.page_size };
+    if (params.page_token) body.page_token = params.page_token;
+    if (params.filters_json) {
+      try {
+        body.filters = JSON.parse(String(params.filters_json));
+      } catch {
+        return JSON.stringify({ success: false, error: 'filters_json 不是合法 JSON' }, null, 2);
+      }
+    }
+    if (params.shop_id) body.shop_id = params.shop_id;
+    const result = await client.post('/api/v1/tiktok-shop/promotions/search', body);
+    return JSON.stringify(result, null, 2);
+  },
+};
+
+const shopInfo: ToolDefinition = {
+  name: 'aibot_tiktok_shop_info',
+  description: 'Get seller/shop profile info (shop name, region, seller type) for the authorized shop.',
+  group: 'tiktok',
+  inputSchema: z.object({
+    shop_id: z.string().optional(),
+  }),
+  handler: async (params, client) => {
+    const q: Record<string, string> = {};
+    if (params.shop_id) q.shop_id = String(params.shop_id);
+    const result = await client.get('/api/v1/tiktok-shop/shop/info', q);
+    return JSON.stringify(result, null, 2);
+  },
+};
+
 // ─── Group ──────────────────────────────────────────
 
 export const tiktokShopTools: ToolDefinition[] = [
+  // 店铺 & 授权
   shopList,
   shopAuthorize,
   shopUnbind,
+  shopInfo,
+  // 类目 / 仓库 / 图片
   shopCategories,
   shopCategoryAttributes,
   shopWarehouses,
+  // 上架
   shopPublish,
+  // 商品管理
+  productSearch,
+  productGet,
+  productUpdatePrice,
+  productUpdateStock,
+  inventoryCheck,
+  productActivate,
+  productDeactivate,
+  productDelete,
+  // 订单
+  orderSearch,
+  orderGet,
+  // 履约发货
+  packageSearch,
+  packageGet,
+  packageShip,
+  // 售后
+  returnSearch,
+  returnDecide,
+  // 营销
+  promotionSearch,
 ];
 
 export const tiktokShopGroup: ToolGroupModule = {

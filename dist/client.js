@@ -37,12 +37,13 @@ export class AibotSpaceClient {
         return this.handleResponse(res);
     }
     /**
-     * DELETE request
+     * DELETE request (TikTok Shop 的批量删除接口需要带 body)
      */
-    async delete(path) {
+    async delete(path, body) {
         const res = await fetch(`${this.config.baseUrl}${path}`, {
             method: 'DELETE',
             headers: this.headers,
+            body: body ? JSON.stringify(body) : undefined,
         });
         return this.handleResponse(res);
     }

@@ -98,7 +98,8 @@ const tiktokCategories = {
 // ─── TikTok Shop Search ──────────────────────────────
 const tiktokShopSearch = {
     name: 'aibot_tiktok_shop_search',
-    description: 'Search TikTok Shop sellers/shops by name or keyword.',
+    description: 'Search TikTok Shop sellers/shops by name or keyword. Read-only market data from FastMoss — ' +
+        'this is NOT your own store. For shops you have authorized, use aibot_tiktok_shop_list.',
     group: 'tiktok',
     inputSchema: z.object({
         keyword: z.string().describe('Shop name or keyword'),
@@ -114,7 +115,8 @@ const tiktokShopSearch = {
 // ─── TikTok Shop Products ──────────────────────────────
 const tiktokShopProducts = {
     name: 'aibot_tiktok_shop_products',
-    description: 'List all products in a specific TikTok Shop.',
+    description: 'List products of a specific TikTok Shop (any shop, read-only market data from FastMoss). ' +
+        'For products in YOUR authorized shop, use aibot_tiktok_shop_product_search instead.',
     group: 'tiktok',
     inputSchema: z.object({
         shopId: z.string().describe('TikTok Shop ID'),

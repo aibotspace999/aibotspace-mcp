@@ -15,9 +15,9 @@ export declare class AibotSpaceClient {
      */
     post<T = unknown>(path: string, body?: unknown): Promise<T>;
     /**
-     * DELETE request
+     * DELETE request (TikTok Shop 的批量删除接口需要带 body)
      */
-    delete<T = unknown>(path: string): Promise<T>;
+    delete<T = unknown>(path: string, body?: unknown): Promise<T>;
     private handleResponse;
 }
 export declare class AibotSpaceError extends Error {

@@ -1,1 +1,1 @@
-{"version":3,"file":"tiktokShop.d.ts","sourceRoot":"","sources":["../../src/tools/tiktokShop.ts"],"names":[],"mappings":"AAAA;;;;;;;;;;;;;GAaG;AAGH,OAAO,KAAK,EAAE,cAAc,EAAE,eAAe,EAAE,MAAM,eAAe,CAAC;AA2RrE,eAAO,MAAM,eAAe,EAAE,cAAc,EAQ3C,CAAC;AAEF,eAAO,MAAM,eAAe,EAAE,eAM7B,CAAC"}
+{"version":3,"file":"tiktokShop.d.ts","sourceRoot":"","sources":["../../src/tools/tiktokShop.ts"],"names":[],"mappings":"AAAA;;;;;;;;;;;;;GAaG;AAGH,OAAO,KAAK,EAAE,cAAc,EAAE,eAAe,EAAE,MAAM,eAAe,CAAC;AA8sBrE,eAAO,MAAM,eAAe,EAAE,cAAc,EAiC3C,CAAC;AAEF,eAAO,MAAM,eAAe,EAAE,eAM7B,CAAC"}

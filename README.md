@@ -8,12 +8,12 @@ AIBotSpace 统一 MCP 服务器 — 在 Claude Code / Codex / Cursor 等 AI 工�
 |---|---|---|
 | 🎨 AI 创作 | 5 | GPT Image 2 / NANO2 / NANO PRO 生图；Seedance / MiniMax H3 / Muse / Omni / Sora / Veo 生视频 |
 | 🎵 TikTok 选品 | 8 | FastMoss：商品搜索、热门视频、新品榜、销量榜、店铺搜索 |
-| 🛒 TikTok 店铺上架 | 7 | OAuth 授权自己的店铺 → 查类目/属性/仓库 → 真实上架商品 |
+| 🛒 TikTok 店铺 | 24 | 授权店铺 → 上架/商品/改价/库存 → 订单 → 发货 → 售后 → 促销 |
 | 📊 Amazon 分析 | 13 | Keepa：商品详情、蓝海选品、畅销榜、促销、卖家筛选、价格追踪 |
 | 🕷️ 数据采集 | 10 | Bright Data：Amazon / TikTok / 社交媒体 / 通用网页抓取 |
 | 💬 HERMES 会话 | 3 | ChatGPT / Gemini / Claude / 千问 对话 |
 
-**共 46 个工具，一个 API Key 全部搞定。**
+**共 63 个工具，一个 API Key 全部搞定。**
 
 ## 快速开始
 
@@ -121,9 +121,9 @@ npm start        # 运行构建后的版本
 | `aibot_video_status` | 查询生视频任务状态 |
 | `aibot_get_balance` | 查询积分余额 |
 
-### TikTok (15)
+### TikTok (32)
 
-选品数据（FastMoss，只读）：
+**选品数据（FastMoss，只读，8 个）**
 
 | 工具 | 说明 |
 |---|---|
@@ -136,17 +136,67 @@ npm start        # 运行构建后的版本
 | `aibot_tiktok_shop_products` | 店铺商品列表 |
 | `aibot_tiktok_product_videos` | 商品关联视频 |
 
-自己店铺的授权与上架：
+**自己店铺 · 授权（4 个）**
 
 | 工具 | 说明 |
 |---|---|
-| `aibot_tiktok_shop_list` | 查看已授权店铺（上架前先调这个） |
-| `aibot_tiktok_shop_authorize` | 获取 OAuth 授权链接，用户浏览器打开授权 |
-| `aibot_tiktok_shop_unbind` | 解除某个店铺的授权（软删除，不影响 TikTok 侧） |
+| `aibot_tiktok_shop_list` | 查看已授权店铺（任何店铺操作前先调这个） |
+| `aibot_tiktok_shop_authorize` | 获取 OAuth 授权链接，用户在浏览器完成授权 |
+| `aibot_tiktok_shop_unbind` | 解除店铺授权（软删除，不影响 TikTok 侧） |
+| `aibot_tiktok_shop_info` | 卖家/店铺基础信息 |
+
+**自己店铺 · 类目与仓库（3 个）**
+
+| 工具 | 说明 |
+|---|---|
 | `aibot_tiktok_shop_categories` | 可售叶子类目（店铺权限过滤） |
 | `aibot_tiktok_shop_category_attributes` | 类目属性与必填项 |
 | `aibot_tiktok_shop_warehouses` | 店铺仓库列表 |
+
+**自己店铺 · 上架与商品管理（9 个）**
+
+| 工具 | 说明 |
+|---|---|
 | `aibot_tiktok_shop_publish` | 提交上架（真实创建并激活商品，进入平台审核） |
+| `aibot_tiktok_shop_product_search` | 商品列表（分页 + 筛选） |
+| `aibot_tiktok_shop_product_get` | 商品详情（含 SKU、价格、库存） |
+| `aibot_tiktok_shop_product_update_price` | 按 SKU 改价 |
+| `aibot_tiktok_shop_product_update_stock` | 按 SKU 改库存 |
+| `aibot_tiktok_shop_inventory_check` | 批量查库存（最多 50 个） |
+| `aibot_tiktok_shop_product_activate` | 批量上架/激活 |
+| `aibot_tiktok_shop_product_deactivate` | 批量下架 |
+| `aibot_tiktok_shop_product_delete` | 批量删除（不可恢复，需 `confirm_delete`） |
+
+**自己店铺 · 订单（2 个）**
+
+| 工具 | 说明 |
+|---|---|
+| `aibot_tiktok_shop_orders` | 订单列表（分页 + 筛选） |
+| `aibot_tiktok_shop_order_get` | 订单详情（最多 50 单） |
+
+**自己店铺 · 履约发货（3 个）**
+
+| 工具 | 说明 |
+|---|---|
+| `aibot_tiktok_shop_packages` | 包裹列表 |
+| `aibot_tiktok_shop_package_get` | 包裹详情 |
+| `aibot_tiktok_shop_package_ship` | 自发货回填运单号（需 `confirm_ship`） |
+
+**自己店铺 · 售后（2 个）**
+
+| 工具 | 说明 |
+|---|---|
+| `aibot_tiktok_shop_returns` | 售后/退款列表 |
+| `aibot_tiktok_shop_return_decide` | 同意或拒绝售后（需 `confirm_decision`） |
+
+**自己店铺 · 营销（1 个）**
+
+| 工具 | 说明 |
+|---|---|
+| `aibot_tiktok_shop_promotions` | 促销活动列表 |
+
+> 上架/改价/删除/发货/售后决策都会真实改动店铺数据，其中删除、发货、售后决策需要显式确认位；
+> 其余工具在大模型侧也会先与你确认再执行。
 
 ### Amazon 市场分析 (13)
 
@@ -220,7 +270,7 @@ Claude Code / Codex / Cursor
         ▼
 ┌───────────────────────────┐
 │   aibotspace-mcp-server   │  ← 本仓库
-│  46 tools, 统一认证        │
+│  63 tools, 统一认证        │
 └───────────┬───────────────┘
             │ HTTPS + Bearer Token
             ▼
