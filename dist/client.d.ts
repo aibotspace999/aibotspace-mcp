@@ -14,6 +14,10 @@ export declare class AibotSpaceClient {
      * POST request
      */
     post<T = unknown>(path: string, body?: unknown): Promise<T>;
+    /**
+     * DELETE request
+     */
+    delete<T = unknown>(path: string): Promise<T>;
     private handleResponse;
 }
 export declare class AibotSpaceError extends Error {

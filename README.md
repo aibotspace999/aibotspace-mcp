@@ -8,11 +8,12 @@ AIBotSpace 统一 MCP 服务器 — 在 Claude Code / Codex / Cursor 等 AI 工�
 |---|---|---|
 | 🎨 AI 创作 | 5 | GPT Image 2 / NANO2 / NANO PRO 生图；Seedance / MiniMax H3 / Muse / Omni / Sora / Veo 生视频 |
 | 🎵 TikTok 选品 | 8 | FastMoss：商品搜索、热门视频、新品榜、销量榜、店铺搜索 |
+| 🛒 TikTok 店铺上架 | 7 | OAuth 授权自己的店铺 → 查类目/属性/仓库 → 真实上架商品 |
 | 📊 Amazon 分析 | 13 | Keepa：商品详情、蓝海选品、畅销榜、促销、卖家筛选、价格追踪 |
 | 🕷️ 数据采集 | 10 | Bright Data：Amazon / TikTok / 社交媒体 / 通用网页抓取 |
 | 💬 HERMES 会话 | 3 | ChatGPT / Gemini / Claude / 千问 对话 |
 
-**共 39 个工具，一个 API Key 全部搞定。**
+**共 46 个工具，一个 API Key 全部搞定。**
 
 ## 快速开始
 
@@ -120,7 +121,7 @@ npm start        # 运行构建后的版本
 | `aibot_video_status` | 查询生视频任务状态 |
 | `aibot_get_balance` | 查询积分余额 |
 
-### TikTok (14)
+### TikTok (15)
 
 选品数据（FastMoss，只读）：
 
@@ -141,6 +142,7 @@ npm start        # 运行构建后的版本
 |---|---|
 | `aibot_tiktok_shop_list` | 查看已授权店铺（上架前先调这个） |
 | `aibot_tiktok_shop_authorize` | 获取 OAuth 授权链接，用户浏览器打开授权 |
+| `aibot_tiktok_shop_unbind` | 解除某个店铺的授权（软删除，不影响 TikTok 侧） |
 | `aibot_tiktok_shop_categories` | 可售叶子类目（店铺权限过滤） |
 | `aibot_tiktok_shop_category_attributes` | 类目属性与必填项 |
 | `aibot_tiktok_shop_warehouses` | 店铺仓库列表 |
@@ -218,7 +220,7 @@ Claude Code / Codex / Cursor
         ▼
 ┌───────────────────────────┐
 │   aibotspace-mcp-server   │  ← 本仓库
-│  39 tools, 统一认证        │
+│  46 tools, 统一认证        │
 └───────────┬───────────────┘
             │ HTTPS + Bearer Token
             ▼

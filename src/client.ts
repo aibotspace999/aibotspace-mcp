@@ -41,6 +41,17 @@ export class AibotSpaceClient {
     return this.handleResponse<T>(res);
   }
 
+  /**
+   * DELETE request
+   */
+  async delete<T = unknown>(path: string): Promise<T> {
+    const res = await fetch(`${this.config.baseUrl}${path}`, {
+      method: 'DELETE',
+      headers: this.headers,
+    });
+    return this.handleResponse<T>(res);
+  }
+
   private async handleResponse<T>(res: Response): Promise<T> {
     const text = await res.text();
     let data: unknown;

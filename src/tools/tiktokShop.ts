@@ -48,6 +48,38 @@ const shopAuthorize: ToolDefinition = {
   },
 };
 
+// ─── 解除授权 ──────────────────────────────────────────
+
+const shopUnbind: ToolDefinition = {
+  name: 'aibot_tiktok_shop_unbind',
+  description:
+    'Revoke the authorization of one shop (soft delete on our side — the shop is unbound from the current account, ' +
+    'nothing is deleted inside TikTok itself). Only call after the user explicitly asks to disconnect a shop. ' +
+    'Pass the `id` field returned by aibot_tiktok_shop_list.',
+  group: 'tiktok',
+  inputSchema: z.object({
+    auth_id: z
+      .union([z.number().int(), z.string()])
+      .describe('The `id` value returned by aibot_tiktok_shop_list (shop record ID, not shop_id)'),
+  }),
+  handler: async (params, client) => {
+    const id = String((params as any).auth_id ?? '').trim();
+    if (!/^\d+$/.test(id)) {
+      return JSON.stringify(
+        {
+          success: false,
+          error: 'auth_id 无效',
+          message: '请传 aibot_tiktok_shop_list 返回的 id（数字记录 ID），不是 shop_id。',
+        },
+        null,
+        2,
+      );
+    }
+    const result = await client.delete(`/api/v1/tiktok-shop/shops/${id}`);
+    return JSON.stringify(result, null, 2);
+  },
+};
+
 // ─── 可售类目 ──────────────────────────────────────────
 
 const shopCategories: ToolDefinition = {
@@ -268,6 +300,7 @@ const shopPublish: ToolDefinition = {
 export const tiktokShopTools: ToolDefinition[] = [
   shopList,
   shopAuthorize,
+  shopUnbind,
   shopCategories,
   shopCategoryAttributes,
   shopWarehouses,
@@ -275,7 +308,7 @@ export const tiktokShopTools: ToolDefinition[] = [
 ];
 
 export const tiktokShopGroup: ToolGroupModule = {
-  group: 'tiktok-shop',
+  group: 'tiktok',
   label: 'TikTok Shop Listing (OAuth + Publish)',
   register() {
     return tiktokShopTools;
